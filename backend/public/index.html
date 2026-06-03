@@ -1,0 +1,558 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>
+        Smart Pedestrian Dashboard
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+    <!-- ===================================== -->
+    <!-- MAIN LAYOUT -->
+    <!-- ===================================== -->
+
+    <div class="main-layout">
+
+        <!-- ===================================== -->
+        <!-- SIDEBAR -->
+        <!-- ===================================== -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-top">
+
+                <div class="sidebar-logo">
+
+                    <h1>
+                        FlowAI
+                    </h1>
+
+                    <p>
+                        Smart Monitoring Platform
+                    </p>
+
+                </div>
+
+                <div class="system-status">
+
+                    <div class="status-dot"></div>
+
+                    <span>
+                        SYSTEM ONLINE
+                    </span>
+
+                </div>
+
+                <div class="live-clock">
+
+                    <span id="clock">
+                        00:00:00
+                    </span>
+
+                </div>
+
+            </div>
+
+            <!-- MENU -->
+
+            <div class="sidebar-menu">
+
+                <button
+                    class="menu-item active"
+                    onclick="switchTab('dashboardTab', this)"
+                >
+                    <span>📹</span>
+                    Dashboard
+                </button>
+
+                <button
+                    class="menu-item"
+                    onclick="switchTab('analyticsTab', this)"
+                >
+                    <span>📊</span>
+                    Analytics
+                </button>
+
+                <button
+                    class="menu-item"
+                    onclick="switchTab('systemTab', this)"
+                >
+                    <span>⚙</span>
+                    System
+                </button>
+
+            </div>
+
+            <!-- FOOTER -->
+
+            <div class="sidebar-footer">
+
+                <div class="sidebar-footer-box">
+
+                    <h3>
+                        AI ENGINE
+                    </h3>
+
+                    <p>
+                        YOLOv8 + ByteTrack
+                    </p>
+
+                </div>
+
+                <div class="sidebar-footer-box">
+
+                    <h3>
+                        STATUS
+                    </h3>
+
+                    <p>
+                        Real-time Monitoring
+                    </p>
+
+                </div>
+
+            </div>
+
+        </aside>
+
+        <!-- ===================================== -->
+        <!-- MAIN CONTENT -->
+        <!-- ===================================== -->
+
+        <main class="content-area">
+
+            <!-- ===================================== -->
+            <!-- TOPBAR -->
+            <!-- ===================================== -->
+
+            <div class="topbar">
+
+                <div class="topbar-left">
+
+                    <h1>
+                        SMART PEDESTRIAN FLOW MONITORING
+                    </h1>
+
+                    <p>
+                        AI Surveillance & Flow Analytics Dashboard
+                    </p>
+
+                </div>
+
+                <div class="upload-container">
+
+                    <input
+                        type="file"
+                        id="videoInput"
+                        accept="video/*"
+                    >
+
+                    <button onclick="uploadVideo()">
+                        Upload Video
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- ===================================== -->
+            <!-- DASHBOARD TAB -->
+            <!-- ===================================== -->
+
+            <div
+                id="dashboardTab"
+                class="tab-page active-page"
+            >
+
+                <!-- CARDS -->
+
+                <div class="card-container">
+
+                    <div class="card">
+
+                        <div class="card-icon">
+                            👥
+                        </div>
+
+                        <div class="card-info">
+
+                            <h2>
+                                Total People
+                            </h2>
+
+                            <p id="totalPeople">
+                                0
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card">
+
+                        <div class="card-icon">
+                            📍
+                        </div>
+
+                        <div class="card-info">
+
+                            <h2>
+                                Crowded Zone
+                            </h2>
+
+                            <p id="crowdedZone">
+                                -
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card">
+
+                        <div class="card-icon">
+                            ↔
+                        </div>
+
+                        <div class="card-info">
+
+                            <h2>
+                                Popular Path
+                            </h2>
+
+                            <p id="popularPath">
+                                -
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card">
+
+                        <div class="card-icon">
+                            ⚠
+                        </div>
+
+                        <div class="card-info">
+
+                            <h2>
+                                System Status
+                            </h2>
+
+                            <p id="congestionAlert">
+                                Normal
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- VIDEO + HEATMAP -->
+
+                <div class="dashboard-grid">
+
+                    <!-- VIDEO -->
+
+                    <div class="panel video-panel">
+
+                        <div class="panel-header">
+
+                            <h2>
+                                🎥 Processed Video
+                            </h2>
+
+                            <div class="live-badge">
+                                LIVE
+                            </div>
+
+                        </div>
+
+                        <div class="video-wrapper">
+
+                            <video
+                                id="processedVideo"
+                                controls
+                                autoplay
+                                muted
+                            >
+
+                                <source
+                                    src=""
+                                    type="video/mp4"
+                                >
+
+                            </video>
+
+                            <div class="video-overlay">
+
+                                <div>
+                                    📹 CAMERA ACTIVE
+                                </div>
+
+                                <div>
+                                    🤖 YOLOv8 TRACKING
+                                </div>
+
+                                <div>
+                                    🟢 LIVE DETECTION
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- HEATMAP -->
+
+                    <div class="panel heatmap-panel">
+
+                        <div class="panel-header">
+
+                            <h2>
+                                🔥 Heatmap Analytics
+                            </h2>
+
+                        </div>
+
+                        <img
+                            id="heatmapImage"
+                            src=""
+                            onclick="openHeatmap()"
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ===================================== -->
+            <!-- ANALYTICS TAB -->
+            <!-- ===================================== -->
+
+            <div
+                id="analyticsTab"
+                class="tab-page"
+            >
+
+                <div class="analytics-grid">
+
+                    <div class="panel">
+
+                        <h2>
+                            📈 Zone Occupancy
+                        </h2>
+
+                        <canvas id="zoneChart"></canvas>
+
+                    </div>
+
+                    <div class="panel">
+
+                        <h2>
+                            📉 Movement Timeline
+                        </h2>
+
+                        <canvas id="timelineChart"></canvas>
+
+                    </div>
+
+                    <div class="panel">
+
+                        <h2>
+                            📡 Live Activity Feed
+                        </h2>
+
+                        <div id="activityFeed">
+
+                            <div class="feed-item">
+                                SYSTEM INITIALIZED
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="panel">
+
+                        <h2>
+                            📊 System Information
+                        </h2>
+
+                        <div class="system-info-list">
+
+                            <div class="info-item">
+                                YOLOv8 Object Detection
+                            </div>
+
+                            <div class="info-item">
+                                ByteTrack Multi-Object Tracking
+                            </div>
+
+                            <div class="info-item">
+                                Real-Time Zone Analytics
+                            </div>
+
+                            <div class="info-item">
+                                Heatmap Visualization
+                            </div>
+
+                            <div class="info-item">
+                                Congestion Monitoring
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ===================================== -->
+            <!-- SYSTEM TAB -->
+            <!-- ===================================== -->
+
+            <div
+                id="systemTab"
+                class="tab-page"
+            >
+
+                <div class="system-layout">
+
+                    <!-- LEFT -->
+
+                    <div class="panel zone-editor-panel">
+
+                        <div class="panel-header">
+
+                            <h2>
+                                🎯 Zone Editor
+                            </h2>
+
+                        </div>
+
+                        <div class="zone-preview-wrapper">
+
+                            <img
+                                id="zonePreview"
+                                src = ""
+                                alt = "Zone Preview"
+                            >
+               
+                            <div id="zoneGridOverlay">
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- RIGHT -->
+
+                    <div class="panel system-settings-panel">
+
+                        <div class="panel-header">
+
+                            <h2>
+                                ⚙ Zone Configuration
+                            </h2>
+
+                        </div>
+
+                        <div class="zone-controls">
+
+                            <label>
+                                Grid Size
+                            </label>
+
+                            <select id="gridSelector">
+
+                                <option value="2">
+                                    2 x 2
+                                </option>
+
+                                <option value="3">
+                                    3 x 3
+                                </option>
+
+                                <option value="4">
+                                    4 x 4
+                                </option>
+
+                                <option value="5">
+                                    5 x 5
+                                </option>
+
+                            </select>
+
+                            <button onclick="generateGrid()">
+                                Generate Grid
+                            </button>
+
+                            <button onclick="saveZones()">
+                                Save Zones
+                            </button>
+
+                        </div>
+
+                        <div id="zoneList">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ===================================== -->
+    <!-- HEATMAP MODAL -->
+    <!-- ===================================== -->
+
+    <div
+        id="heatmapModal"
+        class="heatmap-modal"
+    >
+
+        <span
+            class="close-modal"
+            onclick="closeHeatmap()"
+        >
+            ✕
+        </span>
+
+        <img
+            id="heatmapFull"
+            class="heatmap-full-image"
+            src=""
+        >
+
+    </div>
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>
+

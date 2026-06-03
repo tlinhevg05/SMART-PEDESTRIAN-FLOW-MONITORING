@@ -1,0 +1,130 @@
+{
+    "grid_size": 5,
+    "zones": [
+        {
+            "id": 0,
+            "name": "a",
+            "grid_position": 0
+        },
+        {
+            "id": 1,
+            "name": "Zone 2",
+            "grid_position": 1
+        },
+        {
+            "id": 2,
+            "name": "Zone 3",
+            "grid_position": 2
+        },
+        {
+            "id": 3,
+            "name": "Zone 4",
+            "grid_position": 3
+        },
+        {
+            "id": 4,
+            "name": "Zone 5",
+            "grid_position": 4
+        },
+        {
+            "id": 5,
+            "name": "Zone 6",
+            "grid_position": 5
+        },
+        {
+            "id": 6,
+            "name": "Zone 7",
+            "grid_position": 6
+        },
+        {
+            "id": 7,
+            "name": "Zone 8",
+            "grid_position": 7
+        },
+        {
+            "id": 8,
+            "name": "Zone 9",
+            "grid_position": 8
+        },
+        {
+            "id": 9,
+            "name": "Zone 10",
+            "grid_position": 9
+        },
+        {
+            "id": 10,
+            "name": "Zone 11",
+            "grid_position": 10
+        },
+        {
+            "id": 11,
+            "name": "Zone 12",
+            "grid_position": 11
+        },
+        {
+            "id": 12,
+            "name": "Zone 13",
+            "grid_position": 12
+        },
+        {
+            "id": 13,
+            "name": "Zone 14",
+            "grid_position": 13
+        },
+        {
+            "id": 14,
+            "name": "Zone 15",
+            "grid_position": 14
+        },
+        {
+            "id": 15,
+            "name": "Zone 16",
+            "grid_position": 15
+        },
+        {
+            "id": 16,
+            "name": "Zone 17",
+            "grid_position": 16
+        },
+        {
+            "id": 17,
+            "name": "Zone 18",
+            "grid_position": 17
+        },
+        {
+            "id": 18,
+            "name": "Zone 19",
+            "grid_position": 18
+        },
+        {
+            "id": 19,
+            "name": "Zone 20",
+            "grid_position": 19
+        },
+        {
+            "id": 20,
+            "name": "Zone 21",
+            "grid_position": 20
+        },
+        {
+            "id": 21,
+            "name": "Zone 22",
+            "grid_position": 21
+        },
+        {
+            "id": 22,
+            "name": "Zone 23",
+            "grid_position": 22
+        },
+        {
+            "id": 23,
+            "name": "Zone 24",
+            "grid_position": 23
+        },
+        {
+            "id": 24,
+            "name": "Zone 25",
+            "grid_position": 24
+        }
+    ]
+}
