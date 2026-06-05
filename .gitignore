@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# macOS / editor
+.DS_Store
+
+# Runtime uploads and generated analysis artifacts
+backend/uploads/*
+backend/outputs/*
+backend/public/media/
+backend/public/processed.mp4
+backend/public/preview.jpg
+backend/public/heatmap.png
+
+# Keep runtime directories if placeholder files are added later
+!backend/uploads/.gitkeep
+!backend/outputs/.gitkeep
+
+# Large/generated model weights can be restored by Ultralytics if removed.
+# The current demo keeps yolov8n.pt because it is small enough for class use.
+ai_services/*.pt

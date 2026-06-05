@@ -21,14 +21,30 @@ function assert(condition, message) {
 
 async function run() {
     const results = [];
+    const state = {
+        token: "",
+        cameraId: null,
+        completedJobId: null
+    };
+
     const record = async (name, fn) => {
         try {
-            await fn();
+            const outcome = await fn();
+
+            if (outcome && outcome.skip) {
+                results.push({ name, status: "SKIP", error: outcome.reason });
+                return;
+            }
+
             results.push({ name, status: "PASS" });
         } catch (err) {
             results.push({ name, status: "FAIL", error: err.message });
         }
     };
+
+    const authHeaders = () => ({
+        Authorization: `Bearer ${state.token}`
+    });
 
     await record("TC-01 invalid login is rejected", async () => {
         const { response } = await request("/api/auth/login", {
@@ -42,8 +58,6 @@ async function run() {
         assert(response.status === 401, `Expected 401, received ${response.status}`);
     });
 
-    let token = "";
-
     await record("TC-02 admin login succeeds", async () => {
         const { response, body } = await request("/api/auth/login", {
             method: "POST",
@@ -55,11 +69,7 @@ async function run() {
         });
         assert(response.ok, `Expected login success, received ${response.status}`);
         assert(body.token, "Expected token in login response");
-        token = body.token;
-    });
-
-    const authHeaders = () => ({
-        Authorization: `Bearer ${token}`
+        state.token = body.token;
     });
 
     await record("TC-03 camera list is available", async () => {
@@ -70,33 +80,57 @@ async function run() {
         assert(Array.isArray(body), "Expected camera array");
     });
 
-    await record("TC-04 zones include metadata", async () => {
-        const { response, body } = await request("/api/zones?camera_source_id=12", {
+    await record("TC-04 smoke camera can be created", async () => {
+        const { response, body } = await request("/api/cameras", {
+            method: "POST",
+            headers: {
+                ...authHeaders(),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: `Smoke Test Camera ${Date.now()}`,
+                location: "API smoke test",
+                description: "Created by npm run test:api"
+            })
+        });
+        assert(response.status === 201, `Expected camera create success, received ${response.status}`);
+        assert(body.id, "Expected camera id");
+        state.cameraId = body.id;
+    });
+
+    await record("TC-05 zones can be saved and loaded", async () => {
+        const zones = {
+            camera_source_id: state.cameraId,
+            grid_size: 2,
+            threshold: 10,
+            zones: [
+                { name: "Entrance", type: "entry", grid_position: 1, threshold: 8, coordinates: [] },
+                { name: "Lobby", type: "monitoring", grid_position: 2, threshold: 12, coordinates: [] },
+                { name: "Escalator", type: "transition", grid_position: 3, threshold: 10, coordinates: [] },
+                { name: "Exit", type: "exit", grid_position: 4, threshold: 8, coordinates: [] }
+            ]
+        };
+
+        const save = await request("/api/zones", {
+            method: "POST",
+            headers: {
+                ...authHeaders(),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(zones)
+        });
+        assert(save.response.ok, `Expected zone save success, received ${save.response.status}`);
+
+        const { response, body } = await request(`/api/zones?camera_source_id=${state.cameraId}`, {
             headers: authHeaders()
         });
         assert(response.ok, `Expected zones, received ${response.status}`);
         assert(Array.isArray(body), "Expected zones array");
-        assert(body.length === 0 || "coordinates" in body[0], "Expected coordinates metadata");
+        assert(body.length === 4, `Expected 4 zones, received ${body.length}`);
+        assert("coordinates" in body[0], "Expected coordinates metadata");
     });
 
-    await record("TC-05 latest stats are available", async () => {
-        const { response, body } = await request("/api/stats?camera_source_id=12", {
-            headers: authHeaders()
-        });
-        assert(response.ok, `Expected stats, received ${response.status}`);
-        assert("total_people" in body, "Expected total_people");
-    });
-
-    await record("TC-06 job detail exposes analytics", async () => {
-        const { response, body } = await request("/api/analysis-jobs/21", {
-            headers: authHeaders()
-        });
-        assert(response.ok, `Expected job detail, received ${response.status}`);
-        assert(body.dwell_times, "Expected dwell_times");
-        assert(body.density_scores, "Expected density_scores");
-    });
-
-    await record("TC-07 multicamera overview is available", async () => {
+    await record("TC-06 multicamera overview is available", async () => {
         const { response, body } = await request("/api/multicamera/overview", {
             headers: authHeaders()
         });
@@ -104,7 +138,64 @@ async function run() {
         assert(Array.isArray(body), "Expected multicamera array");
     });
 
-    await record("TC-08 CSV report export works", async () => {
+    await record("TC-07 completed job can be discovered", async () => {
+        const { response, body } = await request("/api/analysis-jobs?status=completed", {
+            headers: authHeaders()
+        });
+        assert(response.ok, `Expected job list, received ${response.status}`);
+        assert(Array.isArray(body), "Expected job array");
+
+        if (!body.length) {
+            return {
+                skip: true,
+                reason: "No completed job yet. Upload sample_data/mall.mp4 to exercise video/report checks."
+            };
+        }
+
+        state.completedJobId = body[0].id;
+        state.cameraId = body[0].camera_source_id || state.cameraId;
+    });
+
+    await record("TC-08 latest stats expose analytics", async () => {
+        if (!state.completedJobId) {
+            return {
+                skip: true,
+                reason: "No completed job yet."
+            };
+        }
+
+        const { response, body } = await request(`/api/stats?job_id=${state.completedJobId}`, {
+            headers: authHeaders()
+        });
+        assert(response.ok, `Expected stats, received ${response.status}`);
+        assert("total_people" in body, "Expected total_people");
+        assert("density_scores" in body, "Expected density_scores");
+    });
+
+    await record("TC-09 job detail exposes analytics", async () => {
+        if (!state.completedJobId) {
+            return {
+                skip: true,
+                reason: "No completed job yet."
+            };
+        }
+
+        const { response, body } = await request(`/api/analysis-jobs/${state.completedJobId}`, {
+            headers: authHeaders()
+        });
+        assert(response.ok, `Expected job detail, received ${response.status}`);
+        assert(body.dwell_times, "Expected dwell_times");
+        assert(body.density_scores, "Expected density_scores");
+    });
+
+    await record("TC-10 CSV report export works", async () => {
+        if (!state.completedJobId) {
+            return {
+                skip: true,
+                reason: "No completed job yet."
+            };
+        }
+
         const { response, body } = await request("/api/reports/export", {
             method: "POST",
             headers: {
@@ -112,8 +203,8 @@ async function run() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                jobId: 21,
-                cameraSourceId: 12,
+                jobId: state.completedJobId,
+                cameraSourceId: state.cameraId,
                 format: "csv"
             })
         });
@@ -121,8 +212,15 @@ async function run() {
         assert(String(body).includes("Density Score"), "Expected density section");
     });
 
-    await record("TC-09 PDF report endpoint works", async () => {
-        const response = await fetch(`${BASE_URL}/api/reports/pdf?camera_source_id=12&job_id=21`, {
+    await record("TC-11 PDF report endpoint works", async () => {
+        if (!state.completedJobId) {
+            return {
+                skip: true,
+                reason: "No completed job yet."
+            };
+        }
+
+        const response = await fetch(`${BASE_URL}/api/reports/pdf?job_id=${state.completedJobId}`, {
             headers: authHeaders()
         });
         const buffer = Buffer.from(await response.arrayBuffer());

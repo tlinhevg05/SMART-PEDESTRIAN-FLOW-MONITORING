@@ -69,6 +69,7 @@ export PATH="/opt/homebrew/bin:/opt/homebrew/opt/postgresql@16/bin:$PATH"
 
 ```bash
 npm install
+python3 -m pip install -r requirements.txt
 npm start
 ```
 
@@ -85,6 +86,18 @@ PYTHON_BIN=/path/to/python npm start
 ```
 
 Required Python packages include `ultralytics`, `opencv-python`, `pandas`, and `numpy`.
+
+For the local workspace used during development, the app is often started with `PORT=3001`:
+
+```bash
+PORT=3001 PYTHON_BIN=/usr/local/bin/python3 npm start
+```
+
+Then open:
+
+```text
+http://localhost:3001
+```
 
 ## Dataset Suggestions
 
@@ -103,6 +116,25 @@ Accessible starting points:
 - https://www.pexels.com/search/videos/crowd%20of%20feet%20walking/
 - https://www.pexels.com/video/people-on-the-street-855329/
 - https://www.kaggle.com/datasets/smeschke/pedestrian-dataset
+
+This repository keeps one small demo input video at:
+
+```text
+sample_data/mall.mp4
+```
+
+Runtime uploads and generated outputs are intentionally ignored by Git:
+
+```text
+backend/uploads/
+backend/outputs/
+backend/public/media/
+backend/public/processed.mp4
+backend/public/preview.jpg
+backend/public/heatmap.png
+```
+
+After cloning, upload `sample_data/mall.mp4` from the UI to recreate the demo analysis jobs locally.
 
 ## Confirmed Demo Dataset Plan
 
@@ -201,7 +233,7 @@ With the server running, execute:
 npm run test:api
 ```
 
-The smoke test covers invalid login, valid login, camera list, zones metadata, latest stats, job detail analytics, multicamera overview, CSV report export, and PDF report export.
+The smoke test covers invalid login, valid login, camera creation, zone persistence, and multicamera overview. If a completed analysis job exists, it also checks latest stats, job detail analytics, CSV report export, and PDF report export. On a fresh clone, upload `sample_data/mall.mp4` first when you want to exercise the video/report checks.
 
 ## Demonstration Checklist
 
