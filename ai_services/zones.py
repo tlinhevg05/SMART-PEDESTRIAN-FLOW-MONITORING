@@ -3,13 +3,23 @@ import os
 
 ZONES = {}
 
+BASE_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        ".."
+    )
+)
+
 
 def load_zones(video_width, video_height):
 
     global ZONES
 
-    zones_file = (
-        r"D:\SE\backend\outputs\zones.json"
+    zones_file = os.path.join(
+        BASE_DIR,
+        "backend",
+        "outputs",
+        "zones.json"
     )
 
     if not os.path.exists(zones_file):

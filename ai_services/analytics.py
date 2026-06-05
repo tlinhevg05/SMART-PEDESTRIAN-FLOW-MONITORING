@@ -1,13 +1,61 @@
 import pandas as pd
 import json
+import os
+import sys
+
+BASE_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        ".."
+    )
+)
+
+default_trajectory_path = os.path.join(
+    BASE_DIR,
+    "backend",
+    "outputs",
+    "trajectories.csv"
+)
+
+default_stats_path = os.path.join(
+    BASE_DIR,
+    "backend",
+    "outputs",
+    "stats.json"
+)
+
+TRAJECTORY_PATH = sys.argv[1] if len(sys.argv) > 1 else default_trajectory_path
+STATS_PATH = sys.argv[2] if len(sys.argv) > 2 else default_stats_path
+
+os.makedirs(
+    os.path.dirname(STATS_PATH),
+    exist_ok=True
+)
 
 # =========================
 # LOAD CSV
 # =========================
 
 df = pd.read_csv(
-    "backend/outputs/trajectories.csv"
+    TRAJECTORY_PATH
 )
+
+if df.empty:
+    stats = {
+        "total_people": 0,
+        "most_crowded_zone": "-",
+        "popular_path": "No movement",
+        "zone_counts": {},
+        "transitions": {},
+        "timeline": [],
+        "congestion_alert": "Normal"
+    }
+
+    with open(STATS_PATH, "w") as f:
+        json.dump(stats, f, indent=4)
+
+    print("Analytics completed")
+    raise SystemExit
 
 # =========================
 # TOTAL PEOPLE
@@ -36,6 +84,7 @@ most_crowded_zone = (
 # =========================
 
 person_paths = {}
+transitions = {}
 
 for person_id in df["person_id"].unique():
 
@@ -79,6 +128,10 @@ for person_id in df["person_id"].unique():
 
         )
 
+        for i in range(1, len(cleaned)):
+            transition = cleaned[i - 1] + " → " + cleaned[i]
+            transitions[transition] = transitions.get(transition, 0) + 1
+
 # =========================
 # POPULAR PATH
 # =========================
@@ -101,6 +154,8 @@ else:
 # =========================
 
 zone_counts = {}
+dwell_times = {}
+fps = 30
 
 for zone in df["zone"].unique():
 
@@ -116,6 +171,37 @@ for zone in df["zone"].unique():
     zone_counts[zone] = int(
         unique_people
     )
+
+    dwell_times[zone] = round(
+        float(
+            df[
+                df["zone"] == zone
+            ].shape[0]
+        ) / fps,
+        2
+    )
+
+# =========================
+# TIMELINE
+# =========================
+
+timeline = []
+max_frame = int(df["frame"].max())
+bucket_count = 8
+bucket_size = max(1, max_frame // bucket_count)
+
+for start in range(0, max_frame + 1, bucket_size):
+    end = start + bucket_size
+    bucket_df = df[
+        (df["frame"] >= start)
+        &
+        (df["frame"] < end)
+    ]
+
+    timeline.append({
+        "label": f"{start}-{end}",
+        "count": int(bucket_df["person_id"].nunique())
+    })
 
 # =========================
 # CONGESTION ALERT
@@ -157,6 +243,15 @@ stats = {
     "zone_counts":
         zone_counts,
 
+    "transitions":
+        transitions,
+
+    "timeline":
+        timeline,
+
+    "dwell_times":
+        dwell_times,
+
     "congestion_alert":
         congestion_alert
 }
@@ -166,8 +261,7 @@ stats = {
 # =========================
 
 with open(
-
-    "backend/outputs/stats.json",
+    STATS_PATH,
 
     "w"
 
@@ -182,4 +276,3 @@ with open(
 print(
     "Analytics completed"
 )
-

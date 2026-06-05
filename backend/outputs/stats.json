@@ -1,0 +1,116 @@
+{
+    "total_people": 136,
+    "most_crowded_zone": "Zone 3",
+    "popular_path": "Zone 11 \u2192 Zone 21",
+    "zone_counts": {
+        "Zone 14": 6,
+        "Zone 9": 5,
+        "Zone 17": 5,
+        "Zone 11": 11,
+        "Zone 24": 9,
+        "Zone 13": 8,
+        "Zone 5": 22,
+        "Zone 4": 14,
+        "Zone 7": 6,
+        "Zone 1": 15,
+        "Zone 3": 17,
+        "Zone 19": 5,
+        "Zone 21": 7,
+        "Zone 8": 9,
+        "Zone 2": 10,
+        "Zone 20": 11,
+        "Zone 12": 14,
+        "Zone 10": 14,
+        "Zone 15": 9,
+        "Zone 23": 8,
+        "Zone 18": 9,
+        "Zone 16": 6,
+        "Zone 25": 3,
+        "Zone 22": 4,
+        "Zone 6": 2
+    },
+    "transitions": {
+        "Zone 14 \u2192 Zone 15": 2,
+        "Zone 15 \u2192 Zone 20": 4,
+        "Zone 20 \u2192 Zone 25": 2,
+        "Zone 9 \u2192 Zone 14": 2,
+        "Zone 17 \u2192 Zone 12": 2,
+        "Zone 12 \u2192 Zone 7": 2,
+        "Zone 7 \u2192 Zone 2": 4,
+        "Zone 11 \u2192 Zone 16": 3,
+        "Zone 16 \u2192 Zone 21": 3,
+        "Zone 24 \u2192 Zone 23": 2,
+        "Zone 23 \u2192 Zone 18": 3,
+        "Zone 18 \u2192 Zone 13": 3,
+        "Zone 13 \u2192 Zone 8": 3,
+        "Zone 8 \u2192 Zone 3": 2,
+        "Zone 8 \u2192 Zone 7": 1,
+        "Zone 5 \u2192 Zone 10": 7,
+        "Zone 1 \u2192 Zone 2": 3,
+        "Zone 3 \u2192 Zone 8": 5,
+        "Zone 8 \u2192 Zone 9": 1,
+        "Zone 14 \u2192 Zone 19": 1,
+        "Zone 19 \u2192 Zone 24": 2,
+        "Zone 24 \u2192 Zone 19": 3,
+        "Zone 19 \u2192 Zone 18": 1,
+        "Zone 7 \u2192 Zone 12": 2,
+        "Zone 12 \u2192 Zone 17": 2,
+        "Zone 17 \u2192 Zone 22": 2,
+        "Zone 8 \u2192 Zone 13": 3,
+        "Zone 13 \u2192 Zone 18": 3,
+        "Zone 18 \u2192 Zone 23": 2,
+        "Zone 10 \u2192 Zone 15": 3,
+        "Zone 4 \u2192 Zone 3": 1,
+        "Zone 20 \u2192 Zone 15": 1,
+        "Zone 15 \u2192 Zone 10": 1,
+        "Zone 10 \u2192 Zone 5": 3,
+        "Zone 5 \u2192 Zone 4": 1,
+        "Zone 14 \u2192 Zone 9": 2,
+        "Zone 1 \u2192 Zone 6": 1,
+        "Zone 19 \u2192 Zone 14": 1,
+        "Zone 9 \u2192 Zone 4": 2,
+        "Zone 22 \u2192 Zone 17": 1,
+        "Zone 2 \u2192 Zone 3": 2,
+        "Zone 25 \u2192 Zone 20": 1,
+        "Zone 6 \u2192 Zone 11": 1
+    },
+    "timeline": [
+        {
+            "label": "0-42",
+            "count": 49
+        },
+        {
+            "label": "42-84",
+            "count": 49
+        },
+        {
+            "label": "84-126",
+            "count": 45
+        },
+        {
+            "label": "126-168",
+            "count": 41
+        },
+        {
+            "label": "168-210",
+            "count": 35
+        },
+        {
+            "label": "210-252",
+            "count": 41
+        },
+        {
+            "label": "252-294",
+            "count": 46
+        },
+        {
+            "label": "294-336",
+            "count": 48
+        },
+        {
+            "label": "336-378",
+            "count": 35
+        }
+    ],
+    "congestion_alert": "\ud83d\udd34 High congestion in Zone 5"
+}

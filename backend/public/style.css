@@ -7,9 +7,9 @@
 
 :root {
 
-    --purple: #6d4aff;
+    --purple: #7132f5;
 
-    --purple-dark: #5738db;
+    --purple-dark: #5741d8;
 
     --bg: #f4f7fb;
 
@@ -26,7 +26,7 @@
     --shadow:
         0 10px 30px rgba(0,0,0,0.05);
 
-    --radius: 22px;
+    --radius: 8px;
 }
 
 /* ===================================== */
@@ -55,6 +55,243 @@ body {
     min-height: 100vh;
 
     overflow-x: hidden;
+}
+
+.login-screen {
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 10000;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #ffffff;
+}
+
+.login-panel {
+
+    width: min(420px, calc(100vw - 32px));
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    padding: 28px;
+
+    box-shadow: var(--shadow);
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+.login-panel h1 {
+
+    color: var(--purple);
+
+    font-size: 42px;
+}
+
+.login-panel p,
+.demo-accounts {
+
+    color: var(--text-secondary);
+
+    line-height: 1.5;
+}
+
+.login-panel input,
+.source-form input,
+.source-form select,
+.filter-row input,
+.filter-row select,
+select {
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    padding: 13px;
+
+    font-size: 15px;
+
+    background: #ffffff;
+}
+
+.filter-row {
+
+    display: grid;
+
+    grid-template-columns: 1fr 180px 120px;
+
+    gap: 10px;
+
+    margin-bottom: 14px;
+}
+
+.wide-grid {
+
+    grid-template-columns: 1.2fr 1fr;
+}
+
+.clickable-row {
+
+    cursor: pointer;
+}
+
+.clickable-row:hover {
+
+    border-color: rgba(113,50,245,0.5);
+
+    background: rgba(113,50,245,0.04);
+}
+
+.detail-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin-bottom: 18px;
+}
+
+.detail-grid div {
+
+    background: #f8fafc;
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    padding: 12px;
+
+    display: grid;
+
+    gap: 4px;
+}
+
+.detail-grid span,
+.muted-text {
+
+    color: var(--text-secondary);
+
+    line-height: 1.45;
+}
+
+.row-actions,
+.action-row {
+
+    display: flex;
+
+    gap: 8px;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    flex-wrap: wrap;
+}
+
+.row-actions button,
+.action-row button {
+
+    padding: 9px 12px;
+
+    font-size: 13px;
+}
+
+.multicam-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+
+    gap: 16px;
+}
+
+.multicam-card {
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+}
+
+.multicam-media {
+
+    aspect-ratio: 16 / 9;
+
+    background: #101114;
+
+    display: grid;
+
+    place-items: center;
+}
+
+.multicam-media img {
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: contain;
+}
+
+.empty-media {
+
+    color: #ffffff;
+
+    font-weight: 700;
+}
+
+.multicam-body {
+
+    padding: 14px;
+
+    display: grid;
+
+    gap: 12px;
+}
+
+.multicam-body small {
+
+    display: block;
+
+    color: var(--text-secondary);
+
+    margin-top: 4px;
+}
+
+.compact-detail {
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    margin-bottom: 0;
+}
+
+#jobDetail h3 {
+
+    margin: 16px 0 10px;
+}
+
+#loginError {
+
+    color: #ef4444;
+
+    min-height: 20px;
 }
 
 /* ===================================== */
@@ -86,7 +323,7 @@ body {
 
     border: 1px solid var(--border);
 
-    border-radius: 28px;
+    border-radius: 8px;
 
     padding: 28px 22px;
 
@@ -104,6 +341,28 @@ body {
 
     justify-content: space-between;
 
+}
+
+.user-box {
+
+    margin-top: 18px;
+
+    border-top: 1px solid var(--border);
+
+    padding-top: 14px;
+
+    display: grid;
+
+    gap: 8px;
+}
+
+.user-box span {
+
+    color: var(--text-secondary);
+
+    text-transform: uppercase;
+
+    font-size: 12px;
 }
 
 .sidebar-logo h1 {
@@ -151,7 +410,7 @@ body {
 
     padding: 18px;
 
-    border-radius: 16px;
+    border-radius: 8px;
 
     text-align: left;
 
@@ -266,7 +525,7 @@ body {
 
     background: var(--surface);
 
-    border-radius: 28px;
+    border-radius: 8px;
 
     padding: 26px;
 
@@ -316,7 +575,7 @@ input[type="file"] {
 
     border: 1px solid var(--border);
 
-    border-radius: 14px;
+    border-radius: 8px;
 
     padding: 14px;
 
@@ -333,7 +592,7 @@ button {
 
     padding: 15px 24px;
 
-    border-radius: 14px;
+    border-radius: 8px;
 
     font-size: 15px;
 
@@ -342,6 +601,13 @@ button {
     cursor: pointer;
 
     transition: 0.25s;
+}
+
+.secondary-button {
+
+    background: rgba(148,151,169,0.08);
+
+    color: var(--text);
 }
 
 button:hover {
@@ -371,7 +637,7 @@ button:hover {
 
     background: var(--surface);
 
-    border-radius: 24px;
+    border-radius: 8px;
 
     padding: 26px;
 
@@ -434,7 +700,7 @@ button:hover {
 
     background: var(--surface);
 
-    border-radius: 28px;
+    border-radius: 8px;
 
     padding: 24px;
 
@@ -484,7 +750,7 @@ button:hover {
 
     padding: 10px 16px;
 
-    border-radius: 999px;
+    border-radius: 8px;
 
     font-size: 13px;
 
@@ -503,26 +769,45 @@ button:hover {
 
     aspect-ratio: 16 / 9;
 
-    min-height: 560px;
-
     overflow: hidden;
 
-    border-radius: 18px;
+    border-radius: 8px;
+
+    background: #101114;
 }
 
 video {
 
     width: 100%;
 
-    height: 720px;
+    height: 100%;
 
-    object-fit: cover;
+    object-fit: contain;
 
-    border-radius: 20px;
+    border-radius: 8px;
 
     background: black;
 
-    margin-bottom: 24px;
+    display: block;
+}
+
+.processed-fallback {
+
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: contain;
+
+    border-radius: 8px;
+
+    background: #101114;
+
+    display: none;
 }
 
 /* ===================================== */
@@ -537,7 +822,7 @@ video {
 
     object-fit: cover;
 
-    border-radius: 18px;
+    border-radius: 8px;
 }
 
 /* ===================================== */
@@ -574,7 +859,7 @@ video {
 
     background: #f8f9fd;
 
-    border-radius: 14px;
+    border-radius: 8px;
 
     padding: 14px;
 
@@ -612,6 +897,44 @@ canvas {
 
     color: #ef4444 !important;
 }
+
+.source-form {
+
+    display: grid;
+
+    gap: 12px;
+
+    margin-bottom: 18px;
+}
+
+.list-row {
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    padding: 14px;
+
+    margin-bottom: 10px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    align-items: center;
+}
+
+.list-row small {
+
+    color: var(--text-secondary);
+}
+
+.role-hidden {
+
+    display: none !important;
+}
 /*tab-button*/
 
 .tab-button {
@@ -620,7 +943,7 @@ canvas {
 
     border: 1px solid var(--border);
 
-    border-radius: 16px;
+    border-radius: 8px;
 
     padding: 18px 22px;
 
@@ -753,7 +1076,7 @@ canvas {
 
     max-height: 92%;
 
-    border-radius: 18px;
+    border-radius: 8px;
 
     box-shadow: 0 0 40px rgba(0,0,0,0.5);
 }
@@ -818,7 +1141,7 @@ canvas {
 
     background: black;
 
-    border-radius: 18px;
+    border-radius: 8px;
 
     border: 2px solid var(--border);
 
@@ -848,7 +1171,7 @@ canvas {
 
     padding: 14px;
 
-    border-radius: 12px;
+    border-radius: 8px;
 
     border: 1px solid var(--border);
 
@@ -887,7 +1210,7 @@ canvas {
 
     border: 1px solid var(--border);
 
-    border-radius: 14px;
+    border-radius: 8px;
 
     padding: 14px;
 }
@@ -911,7 +1234,7 @@ canvas {
 
     padding: 12px;
 
-    border-radius: 10px;
+    border-radius: 8px;
 
     border: 1px solid var(--border);
 
@@ -968,7 +1291,7 @@ canvas {
 
     padding: 12px;
 
-    border-radius: 12px;
+    border-radius: 8px;
 
     border: 1px solid var(--border);
 
@@ -983,7 +1306,7 @@ canvas {
 
     overflow: hidden;
 
-    border-radius: 16px;
+    border-radius: 8px;
 }
 
 #zoneVideo {
@@ -1008,6 +1331,54 @@ canvas {
     display: grid;
 
     pointer-events: none;
+}
+
+#polygonOverlay {
+
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    pointer-events: none;
+
+    z-index: 4;
+}
+
+.polygon-active #polygonOverlay {
+
+    pointer-events: auto;
+
+    cursor: crosshair;
+}
+
+.zone-polygon,
+.active-polygon {
+
+    fill: rgba(20,158,97,0.18);
+
+    stroke: #149e61;
+
+    stroke-width: 0.7;
+}
+
+.active-polygon {
+
+    fill: rgba(113,50,245,0.22);
+
+    stroke: #7132f5;
+}
+
+.polygon-dot {
+
+    fill: #ffffff;
+
+    stroke: #101114;
+
+    stroke-width: 0.25;
 }
 
 .grid-cell {
@@ -1066,7 +1437,7 @@ canvas {
 
     padding: 12px;
 
-    border-radius: 12px;
+    border-radius: 8px;
 }
 
 .system-layout .panel {
@@ -1079,7 +1450,7 @@ canvas {
 
     display: block;
 
-    border-radius: 16px;
+    border-radius: 8px;
 
     background: black;
 }

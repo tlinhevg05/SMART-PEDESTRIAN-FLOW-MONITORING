@@ -1,4 +1,4 @@
-const pool =
+const { pool } =
     require("../config/db");
 
 async function createVideo(

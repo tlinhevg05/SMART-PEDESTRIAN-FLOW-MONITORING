@@ -1,4 +1,4 @@
-const pool = require("../config/db");
+const { pool } = require("../config/db");
 
 // =====================================
 // GET ANALYTICS BY VIDEO ID

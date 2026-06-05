@@ -11,6 +11,13 @@ import os
 # INPUT VIDEO
 # =========================
 
+BASE_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        ".."
+    )
+)
+
 video_path = sys.argv[1]
 
 # =========================
@@ -51,12 +58,31 @@ if fps == 0:
 # OUTPUT PATHS
 # =========================
 
-output_video = (
-    r"D:\SE\backend\public\processed.mp4"
+default_output_video = os.path.join(
+    BASE_DIR,
+    "backend",
+    "public",
+    "processed.mp4"
 )
 
-output_csv = (
-    r"D:\SE\backend\outputs\trajectories.csv"
+default_output_csv = os.path.join(
+    BASE_DIR,
+    "backend",
+    "outputs",
+    "trajectories.csv"
+)
+
+output_video = sys.argv[2] if len(sys.argv) > 2 else default_output_video
+output_csv = sys.argv[3] if len(sys.argv) > 3 else default_output_csv
+
+os.makedirs(
+    os.path.dirname(output_video),
+    exist_ok=True
+)
+
+os.makedirs(
+    os.path.dirname(output_csv),
+    exist_ok=True
 )
 
 # =========================
@@ -64,7 +90,7 @@ output_csv = (
 # =========================
 
 fourcc = cv2.VideoWriter_fourcc(
-    *'avc1'
+    *"avc1"
 )
 
 out = cv2.VideoWriter(
@@ -311,4 +337,3 @@ cv2.destroyAllWindows()
 print("Tracking completed")
 
 print("Processed video saved")
-

@@ -18,6 +18,59 @@
 </head>
 
 <body>
+    <div
+        id="loginScreen"
+        class="login-screen"
+    >
+
+        <form
+            class="login-panel"
+            onsubmit="login(event)"
+        >
+            <h1>
+                FlowAI
+            </h1>
+
+            <p>
+                Smart Pedestrian Flow Monitoring
+            </p>
+
+            <label>
+                Email
+            </label>
+
+            <input
+                id="loginEmail"
+                type="email"
+                value="admin@flowai.local"
+                required
+            >
+
+            <label>
+                Password
+            </label>
+
+            <input
+                id="loginPassword"
+                type="password"
+                value="admin123"
+                required
+            >
+
+            <button type="submit">
+                Login
+            </button>
+
+            <div id="loginError"></div>
+
+            <div class="demo-accounts">
+                admin@flowai.local / admin123<br>
+                operator@flowai.local / operator123<br>
+                analyst@flowai.local / analyst123
+            </div>
+        </form>
+
+    </div>
 
     <!-- ===================================== -->
     <!-- MAIN LAYOUT -->
@@ -63,6 +116,25 @@
 
                 </div>
 
+                <div class="user-box">
+
+                    <strong id="currentUserName">
+                        Guest
+                    </strong>
+
+                    <span id="currentUserRole">
+                        -
+                    </span>
+
+                    <button
+                        class="secondary-button"
+                        onclick="logout()"
+                    >
+                        Logout
+                    </button>
+
+                </div>
+
             </div>
 
             <!-- MENU -->
@@ -79,10 +151,59 @@
 
                 <button
                     class="menu-item"
+                    id="sourcesMenu"
+                    onclick="switchTab('sourcesTab', this)"
+                >
+                    <span>▦</span>
+                    Sources
+                </button>
+
+                <button
+                    class="menu-item"
                     onclick="switchTab('analyticsTab', this)"
                 >
                     <span>📊</span>
                     Analytics
+                </button>
+
+                <button
+                    class="menu-item"
+                    onclick="switchTab('multicamTab', this)"
+                >
+                    <span>▥</span>
+                    Multicam
+                </button>
+
+                <button
+                    class="menu-item"
+                    onclick="switchTab('jobsTab', this)"
+                >
+                    <span>☷</span>
+                    Jobs
+                </button>
+
+                <button
+                    class="menu-item"
+                    onclick="switchTab('alertsTab', this)"
+                >
+                    <span>⚠</span>
+                    Alerts
+                </button>
+
+                <button
+                    class="menu-item"
+                    onclick="switchTab('reportsTab', this)"
+                >
+                    <span>▤</span>
+                    Reports
+                </button>
+
+                <button
+                    class="menu-item admin-only"
+                    onclick="switchTab('usersTab', this)"
+                >
+                    <span>👤</span>
+                    Users
                 </button>
 
                 <button
@@ -153,6 +274,12 @@
 
                 <div class="upload-container">
 
+                    <select id="cameraSelect">
+                        <option value="">
+                            Default camera
+                        </option>
+                    </select>
+
                     <input
                         type="file"
                         id="videoInput"
@@ -162,6 +289,60 @@
                     <button onclick="uploadVideo()">
                         Upload Video
                     </button>
+
+                </div>
+
+            </div>
+
+            <div
+                id="sourcesTab"
+                class="tab-page"
+            >
+
+                <div class="analytics-grid">
+
+                    <div class="panel">
+
+                        <h2>
+                            Camera Sources
+                        </h2>
+
+                        <div class="source-form">
+
+                            <input
+                                id="cameraName"
+                                placeholder="Camera name"
+                            >
+
+                            <input
+                                id="cameraLocation"
+                                placeholder="Location"
+                            >
+
+                            <input
+                                id="cameraStreamUrl"
+                                placeholder="Optional stream URL"
+                            >
+
+                            <button onclick="createCamera()">
+                                Add Camera
+                            </button>
+
+                        </div>
+
+                        <div id="cameraList"></div>
+
+                    </div>
+
+                    <div class="panel">
+
+                        <h2>
+                            Analysis Jobs
+                        </h2>
+
+                        <div id="jobList"></div>
+
+                    </div>
 
                 </div>
 
@@ -289,6 +470,7 @@
                                 controls
                                 autoplay
                                 muted
+                                poster="/preview.jpg"
                             >
 
                                 <source
@@ -297,6 +479,13 @@
                                 >
 
                             </video>
+
+                            <img
+                                id="processedFallback"
+                                class="processed-fallback"
+                                src="/preview.jpg"
+                                alt="Processed video preview"
+                            >
 
                             <div class="video-overlay">
 
@@ -376,7 +565,27 @@
                     <div class="panel">
 
                         <h2>
-                            📡 Live Activity Feed
+                            Alerts
+                        </h2>
+
+                        <div id="alertList"></div>
+
+                    </div>
+
+                    <div class="panel">
+
+                        <h2>
+                            Transition Flow
+                        </h2>
+
+                        <div id="flowList"></div>
+
+                    </div>
+
+                    <div class="panel">
+
+                        <h2>
+                            Live Activity Feed
                         </h2>
 
                         <div id="activityFeed">
@@ -417,12 +626,178 @@
                                 Congestion Monitoring
                             </div>
 
+                            <div class="info-item">
+                                Role-based Access Control
+                            </div>
+
+                            <div class="info-item">
+                                CSV Report Export
+                            </div>
+
+                            <button onclick="exportReport()">
+                                Export CSV Report
+                            </button>
+
                         </div>
 
                     </div>
 
                 </div>
 
+            </div>
+
+            <div
+                id="multicamTab"
+                class="tab-page"
+            >
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Multi-Camera Overview</h2>
+                        <button onclick="loadMulticameraOverview()">Refresh</button>
+                    </div>
+
+                    <div id="multicamGrid" class="multicam-grid"></div>
+                </div>
+            </div>
+
+            <div
+                id="jobsTab"
+                class="tab-page"
+            >
+                <div class="analytics-grid wide-grid">
+                    <div class="panel">
+                        <h2>Analysis Job History</h2>
+
+                        <div class="filter-row">
+                            <input
+                                id="jobSearch"
+                                placeholder="Search camera, location, or video"
+                            >
+
+                            <select id="jobStatusFilter">
+                                <option value="">All statuses</option>
+                                <option value="completed">Completed</option>
+                                <option value="processing">Processing</option>
+                                <option value="failed">Failed</option>
+                            </select>
+
+                            <button onclick="loadJobs()">
+                                Apply
+                            </button>
+                        </div>
+
+                        <div id="jobHistoryList"></div>
+                    </div>
+
+                    <div class="panel">
+                        <h2>Job Detail</h2>
+                        <div id="jobDetail"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                id="alertsTab"
+                class="tab-page"
+            >
+                <div class="analytics-grid">
+                    <div class="panel">
+                        <h2>Alert Management</h2>
+                        <div id="alertManagementList"></div>
+                    </div>
+
+                    <div class="panel">
+                        <h2>Threshold Policy</h2>
+                        <p class="muted-text">
+                            Thresholds are configured per zone in System. Alerts are generated when analyzed people count exceeds the saved zone threshold.
+                        </p>
+                        <div id="thresholdSummary"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                id="reportsTab"
+                class="tab-page"
+            >
+                <div class="analytics-grid">
+                    <div class="panel">
+                        <h2>Report Export</h2>
+                        <div class="source-form">
+                            <input
+                                id="reportJobId"
+                                placeholder="Optional job ID"
+                                type="number"
+                            >
+
+                            <button onclick="exportReport()">
+                                Export CSV Report
+                            </button>
+
+                            <button onclick="openPrintableReport()">
+                                Open Printable Report
+                            </button>
+
+                            <button onclick="downloadPdfReport()">
+                                Download PDF Report
+                            </button>
+                        </div>
+                        <p class="muted-text">
+                            Report includes KPI summary, zone counts, transition flow, dwell time, density score, and timeline.
+                        </p>
+                    </div>
+
+                    <div class="panel">
+                        <h2>Generated Reports</h2>
+                        <div id="reportHistoryList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                id="usersTab"
+                class="tab-page"
+            >
+                <div class="analytics-grid">
+                    <div class="panel">
+                        <h2>User Accounts</h2>
+
+                        <div id="userList"></div>
+                    </div>
+
+                    <div class="panel">
+                        <h2>Create Account</h2>
+
+                        <div class="source-form">
+                            <input
+                                id="newUserName"
+                                placeholder="Full name"
+                            >
+
+                            <input
+                                id="newUserEmail"
+                                placeholder="Email"
+                                type="email"
+                            >
+
+                            <input
+                                id="newUserPassword"
+                                placeholder="Password"
+                                type="password"
+                            >
+
+                            <select id="newUserRole">
+                                <option value="operator">Operator</option>
+                                <option value="analyst">Analyst</option>
+                                <option value="admin">Admin</option>
+                            </select>
+
+                            <button onclick="createUser()">
+                                Create User
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- ===================================== -->
@@ -459,6 +834,8 @@
                             <div id="zoneGridOverlay">
 
                             </div>
+
+                            <svg id="polygonOverlay"></svg>
 
                         </div>
 
@@ -504,6 +881,18 @@
 
                             <button onclick="generateGrid()">
                                 Generate Grid
+                            </button>
+
+                            <button onclick="applyReportZonePreset()">
+                                Report Zone Preset
+                            </button>
+
+                            <button onclick="togglePolygonMode()">
+                                Polygon Mode
+                            </button>
+
+                            <button onclick="clearActivePolygon()">
+                                Clear Polygon
                             </button>
 
                             <button onclick="saveZones()">
@@ -555,4 +944,3 @@
 </body>
 
 </html>
-
