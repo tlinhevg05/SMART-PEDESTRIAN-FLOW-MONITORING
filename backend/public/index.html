@@ -23,10 +23,7 @@
         class="login-screen"
     >
 
-        <form
-            class="login-panel"
-            onsubmit="login(event)"
-        >
+        <div class="login-panel">
             <h1>
                 FlowAI
             </h1>
@@ -35,40 +32,80 @@
                 Smart Pedestrian Flow Monitoring
             </p>
 
-            <label>
-                Email
-            </label>
-
-            <input
-                id="loginEmail"
-                type="email"
-                value="admin@flowai.local"
-                required
+            <form
+                onsubmit="login(event)"
+                autocomplete="off"
             >
+                <label>
+                    Email
+                </label>
 
-            <label>
-                Password
-            </label>
+                <input
+                    id="loginEmail"
+                    type="email"
+                    autocomplete="off"
+                    required
+                >
 
-            <input
-                id="loginPassword"
-                type="password"
-                value="admin123"
-                required
-            >
+                <label>
+                    Password
+                </label>
 
-            <button type="submit">
-                Login
-            </button>
+                <input
+                    id="loginPassword"
+                    type="password"
+                    autocomplete="off"
+                    required
+                >
+
+                <button type="submit">
+                    Login
+                </button>
+            </form>
 
             <div id="loginError"></div>
 
-            <div class="demo-accounts">
-                admin@flowai.local / admin123<br>
-                operator@flowai.local / operator123<br>
-                analyst@flowai.local / analyst123
-            </div>
-        </form>
+            <div class="login-divider"></div>
+
+            <form
+                class="register-panel"
+                onsubmit="registerAccount(event)"
+                autocomplete="off"
+            >
+                <h2>
+                    Create Account
+                </h2>
+
+                <input
+                    id="registerName"
+                    placeholder="Full name"
+                    autocomplete="name"
+                    required
+                >
+
+                <input
+                    id="registerEmail"
+                    placeholder="Email"
+                    type="email"
+                    autocomplete="email"
+                    required
+                >
+
+                <input
+                    id="registerPassword"
+                    placeholder="Password"
+                    type="password"
+                    autocomplete="new-password"
+                    required
+                >
+
+                <button type="submit">
+                    Create Account
+                </button>
+
+                <div id="registerMessage"></div>
+            </form>
+        </div>
 
     </div>
 
@@ -95,16 +132,6 @@
                     <p>
                         Smart Monitoring Platform
                     </p>
-
-                </div>
-
-                <div class="system-status">
-
-                    <div class="status-dot"></div>
-
-                    <span>
-                        SYSTEM ONLINE
-                    </span>
 
                 </div>
 
@@ -143,9 +170,9 @@
 
                 <button
                     class="menu-item active"
+                    id="dashboardMenu"
                     onclick="switchTab('dashboardTab', this)"
                 >
-                    <span>📹</span>
                     Dashboard
                 </button>
 
@@ -154,47 +181,46 @@
                     id="sourcesMenu"
                     onclick="switchTab('sourcesTab', this)"
                 >
-                    <span>▦</span>
                     Sources
                 </button>
 
                 <button
                     class="menu-item"
+                    id="analyticsMenu"
                     onclick="switchTab('analyticsTab', this)"
                 >
-                    <span>📊</span>
                     Analytics
                 </button>
 
                 <button
                     class="menu-item"
+                    id="multicamMenu"
                     onclick="switchTab('multicamTab', this)"
                 >
-                    <span>▥</span>
                     Multicam
                 </button>
 
                 <button
                     class="menu-item"
+                    id="historyMenu"
                     onclick="switchTab('jobsTab', this)"
                 >
-                    <span>☷</span>
-                    Jobs
+                    History
                 </button>
 
                 <button
                     class="menu-item"
+                    id="alertsMenu"
                     onclick="switchTab('alertsTab', this)"
                 >
-                    <span>⚠</span>
                     Alerts
                 </button>
 
                 <button
                     class="menu-item"
+                    id="reportsMenu"
                     onclick="switchTab('reportsTab', this)"
                 >
-                    <span>▤</span>
                     Reports
                 </button>
 
@@ -202,47 +228,16 @@
                     class="menu-item admin-only"
                     onclick="switchTab('usersTab', this)"
                 >
-                    <span>👤</span>
                     Users
                 </button>
 
                 <button
                     class="menu-item"
+                    id="systemMenu"
                     onclick="switchTab('systemTab', this)"
                 >
-                    <span>⚙</span>
                     System
                 </button>
-
-            </div>
-
-            <!-- FOOTER -->
-
-            <div class="sidebar-footer">
-
-                <div class="sidebar-footer-box">
-
-                    <h3>
-                        AI ENGINE
-                    </h3>
-
-                    <p>
-                        YOLOv8 + ByteTrack
-                    </p>
-
-                </div>
-
-                <div class="sidebar-footer-box">
-
-                    <h3>
-                        STATUS
-                    </h3>
-
-                    <p>
-                        Real-time Monitoring
-                    </p>
-
-                </div>
 
             </div>
 
@@ -299,7 +294,7 @@
                 class="tab-page"
             >
 
-                <div class="analytics-grid">
+                <div class="analytics-grid source-only-grid">
 
                     <div class="panel">
 
@@ -319,11 +314,6 @@
                                 placeholder="Location"
                             >
 
-                            <input
-                                id="cameraStreamUrl"
-                                placeholder="Optional stream URL"
-                            >
-
                             <button onclick="createCamera()">
                                 Add Camera
                             </button>
@@ -331,16 +321,6 @@
                         </div>
 
                         <div id="cameraList"></div>
-
-                    </div>
-
-                    <div class="panel">
-
-                        <h2>
-                            Analysis Jobs
-                        </h2>
-
-                        <div id="jobList"></div>
 
                     </div>
 
@@ -363,10 +343,6 @@
 
                     <div class="card">
 
-                        <div class="card-icon">
-                            👥
-                        </div>
-
                         <div class="card-info">
 
                             <h2>
@@ -382,10 +358,6 @@
                     </div>
 
                     <div class="card">
-
-                        <div class="card-icon">
-                            📍
-                        </div>
 
                         <div class="card-info">
 
@@ -403,10 +375,6 @@
 
                     <div class="card">
 
-                        <div class="card-icon">
-                            ↔
-                        </div>
-
                         <div class="card-info">
 
                             <h2>
@@ -422,10 +390,6 @@
                     </div>
 
                     <div class="card">
-
-                        <div class="card-icon">
-                            ⚠
-                        </div>
 
                         <div class="card-info">
 
@@ -454,7 +418,7 @@
                         <div class="panel-header">
 
                             <h2>
-                                🎥 Processed Video
+                                Processed Video
                             </h2>
 
                             <div class="live-badge">
@@ -503,6 +467,8 @@
 
                             </div>
 
+                            <svg id="dashboardZoneOverlay"></svg>
+
                         </div>
 
                     </div>
@@ -514,7 +480,7 @@
                         <div class="panel-header">
 
                             <h2>
-                                🔥 Heatmap Analytics
+                                Heatmap Analytics
                             </h2>
 
                         </div>
@@ -545,17 +511,33 @@
                     <div class="panel">
 
                         <h2>
-                            📈 Zone Occupancy
+                            Polygon Zone Analytics
                         </h2>
 
                         <canvas id="zoneChart"></canvas>
+                        <div
+                            id="zoneChartEmpty"
+                            class="feed-item"
+                        >
+                            No polygon zone analytics yet
+                        </div>
 
                     </div>
 
                     <div class="panel">
 
                         <h2>
-                            📉 Movement Timeline
+                            Line Zone Analytics
+                        </h2>
+
+                        <div id="lineZoneList"></div>
+
+                    </div>
+
+                    <div class="panel">
+
+                        <h2>
+                            Movement Timeline
                         </h2>
 
                         <canvas id="timelineChart"></canvas>
@@ -593,50 +575,6 @@
                             <div class="feed-item">
                                 SYSTEM INITIALIZED
                             </div>
-
-                        </div>
-
-                    </div>
-
-                    <div class="panel">
-
-                        <h2>
-                            📊 System Information
-                        </h2>
-
-                        <div class="system-info-list">
-
-                            <div class="info-item">
-                                YOLOv8 Object Detection
-                            </div>
-
-                            <div class="info-item">
-                                ByteTrack Multi-Object Tracking
-                            </div>
-
-                            <div class="info-item">
-                                Real-Time Zone Analytics
-                            </div>
-
-                            <div class="info-item">
-                                Heatmap Visualization
-                            </div>
-
-                            <div class="info-item">
-                                Congestion Monitoring
-                            </div>
-
-                            <div class="info-item">
-                                Role-based Access Control
-                            </div>
-
-                            <div class="info-item">
-                                CSV Report Export
-                            </div>
-
-                            <button onclick="exportReport()">
-                                Export CSV Report
-                            </button>
 
                         </div>
 
@@ -734,10 +672,6 @@
                                 Export CSV Report
                             </button>
 
-                            <button onclick="openPrintableReport()">
-                                Open Printable Report
-                            </button>
-
                             <button onclick="downloadPdfReport()">
                                 Download PDF Report
                             </button>
@@ -758,44 +692,11 @@
                 id="usersTab"
                 class="tab-page"
             >
-                <div class="analytics-grid">
+                <div class="analytics-grid source-only-grid">
                     <div class="panel">
                         <h2>User Accounts</h2>
 
                         <div id="userList"></div>
-                    </div>
-
-                    <div class="panel">
-                        <h2>Create Account</h2>
-
-                        <div class="source-form">
-                            <input
-                                id="newUserName"
-                                placeholder="Full name"
-                            >
-
-                            <input
-                                id="newUserEmail"
-                                placeholder="Email"
-                                type="email"
-                            >
-
-                            <input
-                                id="newUserPassword"
-                                placeholder="Password"
-                                type="password"
-                            >
-
-                            <select id="newUserRole">
-                                <option value="operator">Operator</option>
-                                <option value="analyst">Analyst</option>
-                                <option value="admin">Admin</option>
-                            </select>
-
-                            <button onclick="createUser()">
-                                Create User
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -818,7 +719,7 @@
                         <div class="panel-header">
 
                             <h2>
-                                🎯 Zone Editor
+                                Zone Editor
                             </h2>
 
                         </div>
@@ -831,10 +732,6 @@
                                 alt = "Zone Preview"
                             >
                
-                            <div id="zoneGridOverlay">
-
-                            </div>
-
                             <svg id="polygonOverlay"></svg>
 
                         </div>
@@ -848,7 +745,7 @@
                         <div class="panel-header">
 
                             <h2>
-                                ⚙ Zone Configuration
+                                Zone Configuration
                             </h2>
 
                         </div>
@@ -856,43 +753,31 @@
                         <div class="zone-controls">
 
                             <label>
-                                Grid Size
+                                Drawing Mode
                             </label>
 
-                            <select id="gridSelector">
+                            <select id="zoneDrawMode">
 
-                                <option value="2">
-                                    2 x 2
+                                <option value="polygon">
+                                    Polygon zone
                                 </option>
 
-                                <option value="3">
-                                    3 x 3
-                                </option>
-
-                                <option value="4">
-                                    4 x 4
-                                </option>
-
-                                <option value="5">
-                                    5 x 5
+                                <option value="line">
+                                    Line zone
                                 </option>
 
                             </select>
 
-                            <button onclick="generateGrid()">
-                                Generate Grid
-                            </button>
-
-                            <button onclick="applyReportZonePreset()">
-                                Report Zone Preset
+                            <button onclick="addZone()">
+                                Add Zone
                             </button>
 
                             <button onclick="togglePolygonMode()">
-                                Polygon Mode
+                                Draw Selected Zone
                             </button>
 
                             <button onclick="clearActivePolygon()">
-                                Clear Polygon
+                                Clear Geometry
                             </button>
 
                             <button onclick="saveZones()">

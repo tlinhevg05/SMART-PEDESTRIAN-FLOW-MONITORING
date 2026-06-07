@@ -53,7 +53,7 @@ async function generateDemoMedia() {
     }
 }
 
-router.post("/demo/seed", authenticate, authorize("admin", "operator"), async (req, res) => {
+router.post("/demo/seed", authenticate, authorize("admin"), async (req, res) => {
     try {
         fs.mkdirSync(OUTPUT_DIR, {
             recursive: true

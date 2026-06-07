@@ -6,6 +6,141 @@ const { authenticate } = require("../services/authService");
 
 const router = express.Router();
 
+function normalizeZoneGeometry(rawCoordinates) {
+    if (Array.isArray(rawCoordinates)) {
+        return {
+            shape: rawCoordinates.length === 2 ? "line" : "polygon",
+            points: rawCoordinates
+        };
+    }
+
+    if (rawCoordinates && Array.isArray(rawCoordinates.points)) {
+        return {
+            shape: rawCoordinates.shape === "line" ? "line" : "polygon",
+            points: rawCoordinates.points
+        };
+    }
+
+    return {
+        shape: "polygon",
+        points: []
+    };
+}
+
+function sideOfLine(point, start, end) {
+    return (
+        (end.x - start.x) * (point.y - start.y) -
+        (end.y - start.y) * (point.x - start.x)
+    );
+}
+
+async function getTypedZoneAnalytics(job) {
+    if (!job?.id || !job.camera_source_id) {
+        return {
+            polygon_zone_counts: job?.zone_counts || {},
+            line_zone_counts: {}
+        };
+    }
+
+    const zoneResult = await pool.query(
+        `
+        SELECT zone_name, coordinates
+        FROM zones
+        WHERE camera_source_id = $1
+        ORDER BY grid_position
+        `,
+        [job.camera_source_id]
+    );
+
+    const polygonZoneCounts = {};
+    const lineZones = [];
+
+    for (const zone of zoneResult.rows) {
+        const geometry = normalizeZoneGeometry(zone.coordinates);
+
+        if (geometry.shape === "line") {
+            lineZones.push({
+                name: zone.zone_name,
+                points: geometry.points
+            });
+        } else {
+            polygonZoneCounts[zone.zone_name] =
+                Number((job.zone_counts || {})[zone.zone_name] || 0);
+        }
+    }
+
+    if (!lineZones.length) {
+        return {
+            polygon_zone_counts: polygonZoneCounts,
+            line_zone_counts: {}
+        };
+    }
+
+    const pointResult = await pool.query(
+        `
+        SELECT pt.anonymous_track_id, tp.frame_index, tp.x, tp.y
+        FROM trajectory_points tp
+        JOIN pedestrian_tracks pt
+          ON pt.id = tp.pedestrian_track_id
+        WHERE pt.analysis_job_id = $1
+        ORDER BY pt.anonymous_track_id, tp.frame_index
+        `,
+        [job.id]
+    );
+
+    const maxX = Math.max(1, ...pointResult.rows.map(row => Number(row.x || 0)));
+    const maxY = Math.max(1, ...pointResult.rows.map(row => Number(row.y || 0)));
+    const tracks = new Map();
+
+    for (const row of pointResult.rows) {
+        const trackId = row.anonymous_track_id;
+
+        if (!tracks.has(trackId)) {
+            tracks.set(trackId, []);
+        }
+
+        tracks.get(trackId).push({
+            x: Number(row.x) / maxX,
+            y: Number(row.y) / maxY
+        });
+    }
+
+    const lineZoneCounts = {};
+
+    for (const lineZone of lineZones) {
+        const [start, end] = lineZone.points || [];
+        let crossings = 0;
+
+        if (!start || !end) {
+            lineZoneCounts[lineZone.name] = 0;
+            continue;
+        }
+
+        for (const points of tracks.values()) {
+            let crossed = false;
+
+            for (let i = 1; i < points.length; i += 1) {
+                const previousSide = sideOfLine(points[i - 1], start, end);
+                const currentSide = sideOfLine(points[i], start, end);
+
+                if (previousSide === 0 || currentSide === 0 || previousSide * currentSide < 0) {
+                    crossed = true;
+                    break;
+                }
+            }
+
+            if (crossed) crossings += 1;
+        }
+
+        lineZoneCounts[lineZone.name] = crossings;
+    }
+
+    return {
+        polygon_zone_counts: polygonZoneCounts,
+        line_zone_counts: lineZoneCounts
+    };
+}
+
 router.get("/multicamera/overview", authenticate, async (req, res) => {
     const result = await pool.query(
         `
@@ -56,7 +191,7 @@ router.get("/stats", authenticate, async (req, res) => {
 
         const result = await pool.query(
             `
-            SELECT id, total_people, most_crowded_zone, popular_path,
+            SELECT id, camera_source_id, total_people, most_crowded_zone, popular_path,
                    zone_counts, transitions, timeline, congestion_alert, status,
                    dwell_times, density_scores,
                    processed_video_path, heatmap_path, preview_path,
@@ -70,26 +205,18 @@ router.get("/stats", authenticate, async (req, res) => {
         );
 
         if (result.rows[0]) {
-            return res.json(result.rows[0]);
+            const typedAnalytics = await getTypedZoneAnalytics(result.rows[0]);
+            return res.json({
+                ...result.rows[0],
+                ...typedAnalytics
+            });
         }
     } catch (err) {
         console.error("Stats DB fallback:", err.message);
     }
-
-    const statsPath = path.join(
-        __dirname,
-        "../outputs/stats.json"
-    );
-
-    fs.readFile(statsPath, "utf8", (err, data) => {
-
-        if (err) {
-            return res.status(500).json({
-                error: "Cannot read stats"
-            });
-        }
-
-        res.json(JSON.parse(data));
+    
+    return res.status(404).json({
+        error: "No completed analysis job is available"
     });
 });
 
@@ -149,6 +276,9 @@ router.get("/stats/realtime", authenticate, async (req, res) => {
 
         for (const row of result.rows) {
             people.add(row.anonymous_track_id);
+            if (!row.zone_name || row.zone_name === "Unknown") {
+                continue;
+            }
             zoneCounts[row.zone_name] =
                 (zoneCounts[row.zone_name] || 0) + 1;
         }

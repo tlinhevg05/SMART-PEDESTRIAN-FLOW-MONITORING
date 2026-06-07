@@ -10,7 +10,7 @@ const { authenticate, authorize } = require("../services/authService");
 // SAVE ZONES
 // =====================================
 
-router.post("/zones", authenticate, authorize("admin", "operator"), async (req, res) => {
+router.post("/zones", authenticate, authorize("admin"), async (req, res) => {
 
     try {
 
@@ -38,7 +38,7 @@ router.post("/zones", authenticate, authorize("admin", "operator"), async (req, 
                 [cameraSourceId]
             );
 
-            for (const zone of zones.zones || []) {
+            for (const [index, zone] of (zones.zones || []).entries()) {
 
                 await pool.query(
                     `
@@ -50,8 +50,8 @@ router.post("/zones", authenticate, authorize("admin", "operator"), async (req, 
                         cameraSourceId,
                         zone.name,
                         zone.type || zone.zone_type || "monitoring",
-                        zone.grid_position,
-                        zones.grid_size,
+                        zone.grid_position ?? index,
+                        zones.grid_size || 1,
                         JSON.stringify(zone.coordinates || []),
                         zone.threshold || zones.threshold || 10
                     ]

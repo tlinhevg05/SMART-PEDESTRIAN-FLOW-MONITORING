@@ -31,6 +31,41 @@ router.post("/auth/login", async (req, res) => {
     }
 });
 
+router.post("/auth/register", async (req, res) => {
+    try {
+        const { fullName, email, password } = req.body || {};
+        const accountRole = "staff";
+
+        if (!fullName || !email || !password) {
+            return res.status(400).json({
+                error: "Full name, email, and password are required"
+            });
+        }
+
+        const result = await pool.query(
+            `
+            INSERT INTO users (full_name, email, password_hash, role)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, full_name, email, role, status, created_at
+            `,
+            [fullName, email, hashPassword(password), accountRole]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        if (err.code === "23505") {
+            return res.status(409).json({
+                error: "Email is already registered"
+            });
+        }
+
+        console.error(err);
+        res.status(500).json({
+            error: "Create account failed"
+        });
+    }
+});
+
 router.get("/auth/me", authenticate, (req, res) => {
     res.json(req.user);
 });
@@ -50,6 +85,9 @@ router.get("/users", authenticate, authorize("admin"), async (req, res) => {
 router.post("/users", authenticate, authorize("admin"), async (req, res) => {
     try {
         const { fullName, email, password, role } = req.body;
+        const userRole = ["admin", "analyst", "staff"].includes(role)
+            ? role
+            : "staff";
 
         if (!fullName || !email || !password || !role) {
             return res.status(400).json({
@@ -63,7 +101,7 @@ router.post("/users", authenticate, authorize("admin"), async (req, res) => {
             VALUES ($1, $2, $3, $4)
             RETURNING id, full_name, email, role, status, created_at
             `,
-            [fullName, email, hashPassword(password), role]
+            [fullName, email, hashPassword(password), userRole]
         );
 
         res.status(201).json(result.rows[0]);

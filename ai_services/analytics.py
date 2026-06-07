@@ -40,6 +40,10 @@ df = pd.read_csv(
     TRAJECTORY_PATH
 )
 
+known_df = df[
+    df["zone"].fillna("Unknown") != "Unknown"
+]
+
 if df.empty:
     stats = {
         "total_people": 0,
@@ -71,13 +75,14 @@ total_people = int(
 # MOST CROWDED ZONE
 # =========================
 
-most_crowded_zone = (
-
-    df["zone"]
-    .value_counts()
-    .idxmax()
-
-)
+if known_df.empty:
+    most_crowded_zone = "-"
+else:
+    most_crowded_zone = (
+        known_df["zone"]
+        .value_counts()
+        .idxmax()
+    )
 
 # =========================
 # PERSON PATHS
@@ -88,8 +93,8 @@ transitions = {}
 
 for person_id in df["person_id"].unique():
 
-    person_df = df[
-        df["person_id"] == person_id
+    person_df = known_df[
+        known_df["person_id"] == person_id
     ]
 
     zone_sequence = (
@@ -157,12 +162,12 @@ zone_counts = {}
 dwell_times = {}
 fps = 30
 
-for zone in df["zone"].unique():
+for zone in known_df["zone"].unique():
 
     unique_people = (
 
-        df[
-            df["zone"] == zone
+        known_df[
+            known_df["zone"] == zone
         ]["person_id"]
 
         .nunique()
@@ -174,8 +179,8 @@ for zone in df["zone"].unique():
 
     dwell_times[zone] = round(
         float(
-            df[
-                df["zone"] == zone
+            known_df[
+                known_df["zone"] == zone
             ].shape[0]
         ) / fps,
         2

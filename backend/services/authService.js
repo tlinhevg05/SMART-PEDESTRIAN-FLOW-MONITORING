@@ -13,8 +13,8 @@ function hashPassword(password) {
 async function seedDefaultUsers() {
     const users = [
         ["System Administrator", "admin@flowai.local", "admin123", "admin"],
-        ["Security Operator", "operator@flowai.local", "operator123", "operator"],
-        ["Facility Analyst", "analyst@flowai.local", "analyst123", "analyst"]
+        ["Facility Analyst", "analyst@flowai.local", "analyst123", "analyst"],
+        ["Security Staff", "staff@flowai.local", "staff123", "staff"]
     ];
 
     for (const [fullName, email, password, role] of users) {

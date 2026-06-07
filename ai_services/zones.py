@@ -1,5 +1,7 @@
 import json
 import os
+import cv2
+import numpy as np
 
 ZONES = {}
 
@@ -36,42 +38,19 @@ def load_zones(video_width, video_height):
 
         data = json.load(f)
 
-    grid_size = data["grid_size"]
-
-    saved_zones = data["zones"]
-
-    cell_width = (
-        video_width // grid_size
-    )
-
-    cell_height = (
-        video_height // grid_size
-    )
-
     zones = {}
 
-    for zone in saved_zones:
+    for zone in data.get("zones", []):
 
-        index = zone["grid_position"]
-
-        row = index // grid_size
-
-        col = index % grid_size
-
-        x1 = col * cell_width
-        y1 = row * cell_height
-
-        x2 = x1 + cell_width
-        y2 = y1 + cell_height
-
-        zones[
-            zone["name"]
-        ] = (
-            x1,
-            y1,
-            x2,
-            y2
+        geometry = normalize_geometry(
+            zone,
+            data.get("grid_size", 2),
+            video_width,
+            video_height
         )
+
+        if geometry:
+            zones[zone["name"]] = geometry
 
     ZONES = zones
 
@@ -86,23 +65,79 @@ def load_zones(video_width, video_height):
 
 def get_zone(x, y):
 
-    for zone_name, (
+    for zone_name, geometry in ZONES.items():
 
-        x1,
-        y1,
-        x2,
-        y2
+        if geometry["shape"] == "line":
+            continue
 
-    ) in ZONES.items():
+        polygon = np.array(
+            geometry["points"],
+            dtype=np.int32
+        )
 
-        if (
-
-            x1 <= x <= x2
-            and
-            y1 <= y <= y2
-
-        ):
+        if cv2.pointPolygonTest(polygon, (x, y), False) >= 0:
 
             return zone_name
 
     return "Unknown"
+
+
+def normalize_geometry(zone, grid_size, video_width, video_height):
+
+    raw_coordinates = zone.get("coordinates")
+    points = []
+    shape = "polygon"
+
+    if isinstance(raw_coordinates, dict):
+        shape = raw_coordinates.get("shape", "polygon")
+        points = raw_coordinates.get("points", [])
+    elif isinstance(raw_coordinates, list):
+        shape = "line" if len(raw_coordinates) == 2 else "polygon"
+        points = raw_coordinates
+
+    if not points:
+        points = grid_cell_points(
+            zone.get("grid_position", 0),
+            grid_size
+        )
+        shape = "polygon"
+
+    pixel_points = [
+        (
+            int(point["x"] * video_width),
+            int(point["y"] * video_height)
+        )
+        for point in points
+        if "x" in point and "y" in point
+    ]
+
+    if shape == "line" and len(pixel_points) >= 2:
+        return {
+            "shape": "line",
+            "points": pixel_points[:2]
+        }
+
+    if len(pixel_points) >= 3:
+        return {
+            "shape": "polygon",
+            "points": pixel_points
+        }
+
+    return None
+
+
+def grid_cell_points(index, grid_size):
+
+    row = index // grid_size
+    col = index % grid_size
+    x1 = col / grid_size
+    y1 = row / grid_size
+    x2 = (col + 1) / grid_size
+    y2 = (row + 1) / grid_size
+
+    return [
+        {"x": x1, "y": y1},
+        {"x": x2, "y": y1},
+        {"x": x2, "y": y2},
+        {"x": x1, "y": y2}
+    ]

@@ -16,7 +16,7 @@ router.get("/cameras", authenticate, async (req, res) => {
     res.json(result.rows);
 });
 
-router.post("/cameras", authenticate, authorize("admin", "operator"), async (req, res) => {
+router.post("/cameras", authenticate, authorize("admin"), async (req, res) => {
     try {
         const { name, location, streamUrl, description, status } = req.body;
 
@@ -44,7 +44,7 @@ router.post("/cameras", authenticate, authorize("admin", "operator"), async (req
     }
 });
 
-router.patch("/cameras/:id", authenticate, authorize("admin", "operator"), async (req, res) => {
+router.patch("/cameras/:id", authenticate, authorize("admin"), async (req, res) => {
     try {
         const cameraId = Number(req.params.id);
         const { name, location, streamUrl, description, status } = req.body;
@@ -81,6 +81,34 @@ router.patch("/cameras/:id", authenticate, authorize("admin", "operator"), async
         console.error(err);
         res.status(500).json({
             error: "Update camera source failed"
+        });
+    }
+});
+
+router.delete("/cameras/:id", authenticate, authorize("admin"), async (req, res) => {
+    try {
+        const result = await pool.query(
+            `
+            DELETE FROM camera_sources
+            WHERE id = $1
+            RETURNING id
+            `,
+            [Number(req.params.id)]
+        );
+
+        if (!result.rows[0]) {
+            return res.status(404).json({
+                error: "Camera source not found"
+            });
+        }
+
+        res.json({
+            message: "Camera source deleted"
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: "Delete camera source failed"
         });
     }
 });

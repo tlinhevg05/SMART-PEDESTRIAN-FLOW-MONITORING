@@ -88,9 +88,46 @@ async function login(event) {
     await initializeDashboard();
 }
 
+async function registerAccount(event) {
+    event.preventDefault();
+
+    const message = document.getElementById("registerMessage");
+    message.innerText = "";
+
+    const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            fullName: document.getElementById("registerName").value,
+            email: document.getElementById("registerEmail").value,
+            password: document.getElementById("registerPassword").value
+        })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        message.innerText = data.error || "Cannot create account";
+        message.className = "form-message error-message";
+        return;
+    }
+
+    document.getElementById("loginEmail").value = data.email;
+    document.getElementById("loginPassword").value = "";
+    document.getElementById("registerName").value = "";
+    document.getElementById("registerEmail").value = "";
+    document.getElementById("registerPassword").value = "";
+    message.innerText = "Account created. You can log in now.";
+    message.className = "form-message success-message";
+}
+
 function logout() {
     auth.clear();
     currentUser = null;
+    document.getElementById("loginEmail").value = "";
+    document.getElementById("loginPassword").value = "";
     showLogin();
 }
 
@@ -103,7 +140,7 @@ function hideLogin() {
 }
 
 function canWrite() {
-    return currentUser && ["admin", "operator"].includes(currentUser.role);
+    return currentUser && currentUser.role === "admin";
 }
 
 function isAdmin() {
@@ -126,6 +163,23 @@ function applyUserState() {
     document.querySelectorAll(".admin-only").forEach(element => {
         element.style.display = isAdmin() ? "" : "none";
     });
+
+    const roleMenus = {
+        sourcesMenu: ["admin"],
+        analyticsMenu: ["admin", "analyst"],
+        multicamMenu: ["admin", "analyst", "staff"],
+        historyMenu: ["admin", "analyst"],
+        alertsMenu: ["admin", "staff"],
+        reportsMenu: ["admin", "analyst"],
+        systemMenu: ["admin"]
+    };
+
+    for (const [menuId, roles] of Object.entries(roleMenus)) {
+        const item = document.getElementById(menuId);
+        if (item) {
+            item.style.display = roles.includes(currentUser.role) ? "" : "none";
+        }
+    }
 }
 
 async function loadSession() {
@@ -160,7 +214,8 @@ async function initializeDashboard() {
         loadFlow(),
         loadReports(),
         loadUsers(),
-        loadMulticameraOverview()
+        loadMulticameraOverview(),
+        loadZonesForSelectedCamera()
     ]);
 
     startRealtimeStats();
@@ -248,6 +303,7 @@ async function loadStats() {
         const response = await apiFetch(`/api/stats${cameraQuery()}`);
 
         if (!response.ok) {
+            clearStatsUi();
             return;
         }
 
@@ -264,25 +320,94 @@ async function loadStats() {
             latestStatsSignature = signature;
             refreshMediaAssets(data);
             renderZoneChart(data);
+            renderLineZoneAnalytics(data);
             renderTimelineChart(data);
         }
     } catch (err) {
+        clearStatsUi();
         console.log("No stats available");
     }
 }
 
+function clearStatsUi() {
+    latestStatsSignature = "";
+    applyStatsCards({
+        total_people: 0,
+        most_crowded_zone: "-",
+        popular_path: "-",
+        congestion_alert: "Normal"
+    });
+
+    const video = document.getElementById("processedVideo");
+    const source = video?.querySelector("source");
+    const fallback = document.getElementById("processedFallback");
+    const heatmap = document.getElementById("heatmapImage");
+    const zonePreview = document.getElementById("zonePreview");
+
+    if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.removeAttribute("poster");
+        if (source) source.removeAttribute("src");
+        video.load();
+    }
+
+    if (fallback) {
+        fallback.removeAttribute("src");
+        fallback.style.display = "none";
+    }
+
+    if (heatmap) {
+        heatmap.removeAttribute("src");
+        heatmap.style.display = "none";
+    }
+
+    if (zonePreview) {
+        zonePreview.removeAttribute("src");
+        zonePreview.style.display = "none";
+    }
+
+    if (zoneChart) {
+        zoneChart.destroy();
+        zoneChart = null;
+    }
+
+    if (timelineChart) {
+        timelineChart.destroy();
+        timelineChart = null;
+    }
+
+    const zoneCanvas = document.getElementById("zoneChart");
+    const zoneEmpty = document.getElementById("zoneChartEmpty");
+    const lineList = document.getElementById("lineZoneList");
+
+    if (zoneCanvas) zoneCanvas.style.display = "none";
+    if (zoneEmpty) zoneEmpty.style.display = "block";
+    if (lineList) lineList.innerHTML = `<div class="feed-item">No line zone analytics yet</div>`;
+}
+
 function applyStatsCards(data) {
     document.getElementById("totalPeople").innerText = data.total_people || 0;
-    document.getElementById("crowdedZone").innerText = data.most_crowded_zone || "-";
-    document.getElementById("popularPath").innerText = data.popular_path || "-";
+    const crowdedZone = data.most_crowded_zone === "Unknown"
+        ? "-"
+        : data.most_crowded_zone || "-";
+    const popularPath = (data.popular_path || "").includes("Unknown")
+        ? "No mapped zone movement"
+        : data.popular_path || "-";
+    const congestionAlert = (data.congestion_alert || "Normal").includes("Unknown")
+        ? "Normal"
+        : data.congestion_alert || "Normal";
+
+    document.getElementById("crowdedZone").innerText = crowdedZone;
+    document.getElementById("popularPath").innerText = popularPath;
 
     const congestionElement = document.getElementById("congestionAlert");
-    congestionElement.innerText = data.congestion_alert || "Normal";
+    congestionElement.innerText = congestionAlert;
     congestionElement.classList.remove("status-normal", "status-warning", "status-danger");
 
-    if ((data.congestion_alert || "").includes("High")) {
+    if (congestionAlert.includes("High")) {
         congestionElement.classList.add("status-danger");
-    } else if ((data.congestion_alert || "").includes("Moderate")) {
+    } else if (congestionAlert.includes("Moderate")) {
         congestionElement.classList.add("status-warning");
     } else {
         congestionElement.classList.add("status-normal");
@@ -339,12 +464,16 @@ function refreshMediaAssets(data = {}) {
     }
 
     document.getElementById("heatmapImage").src = `${heatmapPath}?t=${mediaToken}`;
+    document.getElementById("heatmapImage").style.display = "block";
 
     const preview = document.getElementById("zonePreview");
 
     if (preview) {
         preview.src = `${previewPath}?t=${mediaToken}`;
+        preview.style.display = "block";
     }
+
+    renderDashboardZoneOverlay();
 }
 
 function startRealtimeStats() {
@@ -375,11 +504,21 @@ async function loadRealtimeStats() {
 }
 
 function renderZoneChart(data) {
-    const zoneCounts = data.zone_counts || {};
+    const zoneCounts = data.polygon_zone_counts || data.zone_counts || {};
     const ctx = document.getElementById("zoneChart");
+    const empty = document.getElementById("zoneChartEmpty");
 
     if (!ctx) return;
     if (zoneChart) zoneChart.destroy();
+
+    if (!Object.keys(zoneCounts).length) {
+        ctx.style.display = "none";
+        if (empty) empty.style.display = "block";
+        return;
+    }
+
+    ctx.style.display = "block";
+    if (empty) empty.style.display = "none";
 
     zoneChart = new Chart(ctx, {
         type: "bar",
@@ -415,6 +554,29 @@ function renderZoneChart(data) {
             }
         }
     });
+}
+
+function renderLineZoneAnalytics(data) {
+    const list = document.getElementById("lineZoneList");
+
+    if (!list) return;
+
+    const entries = Object.entries(data.line_zone_counts || {});
+
+    if (!entries.length) {
+        list.innerHTML = `<div class="feed-item">No line zones configured for this job</div>`;
+        return;
+    }
+
+    list.innerHTML = entries.map(([zoneName, count]) => `
+        <div class="list-row">
+            <div>
+                <strong>${zoneName}</strong><br>
+                <small>Estimated crossings from tracked trajectories</small>
+            </div>
+            <strong>${count}</strong>
+        </div>
+    `).join("");
 }
 
 function renderTimelineChart(data) {
@@ -490,6 +652,7 @@ async function uploadVideo() {
         }
 
         addFeed("Analytics completed");
+        latestStatsSignature = "";
         await Promise.all([loadStats(), loadAlerts(), loadJobs(), loadFlow()]);
         alert("Processing completed successfully");
     } catch (err) {
@@ -513,7 +676,7 @@ async function loadCameras() {
     const list = document.getElementById("cameraList");
 
     select.innerHTML = `<option value="">All cameras</option>`;
-    list.innerHTML = "";
+    if (list) list.innerHTML = "";
 
     cameras.forEach(camera => {
         const option = document.createElement("option");
@@ -533,9 +696,12 @@ async function loadCameras() {
                 <button onclick="toggleCameraStatus(${camera.id}, '${camera.status}')">
                     ${camera.status === "active" ? "Disable" : "Activate"}
                 </button>
+                <button class="danger-button" onclick="deleteCamera(${camera.id})">
+                    Delete
+                </button>
             </div>
         `;
-        list.appendChild(row);
+        if (list) list.appendChild(row);
     });
 
     if ([...select.options].some(option => option.value === previousValue)) {
@@ -555,8 +721,7 @@ async function createCamera() {
         },
         body: JSON.stringify({
             name: document.getElementById("cameraName").value,
-            location: document.getElementById("cameraLocation").value,
-            streamUrl: document.getElementById("cameraStreamUrl").value
+            location: document.getElementById("cameraLocation").value
         })
     });
 
@@ -569,7 +734,6 @@ async function createCamera() {
 
     document.getElementById("cameraName").value = "";
     document.getElementById("cameraLocation").value = "";
-    document.getElementById("cameraStreamUrl").value = "";
     await loadCameras();
 
     if (camera.id) {
@@ -628,6 +792,38 @@ async function toggleCameraStatus(cameraId, currentStatus) {
     }
 
     await loadCameras();
+}
+
+async function deleteCamera(cameraId) {
+    if (!canWrite()) return;
+
+    if (!confirm("Delete this camera source? Its saved zones will be removed.")) {
+        return;
+    }
+
+    const response = await apiFetch(`/api/cameras/${cameraId}`, {
+        method: "DELETE"
+    });
+
+    if (!response.ok) {
+        alert("Cannot delete camera source");
+        return;
+    }
+
+    if (selectedCameraId() === String(cameraId)) {
+        document.getElementById("cameraSelect").value = "";
+        selectedJobId = "";
+    }
+
+    await Promise.all([
+        loadCameras(),
+        loadStats(),
+        loadAlerts(),
+        loadJobs(),
+        loadFlow(),
+        loadZonesForSelectedCamera(),
+        loadMulticameraOverview()
+    ]);
 }
 
 async function seedDemoData() {
@@ -698,10 +894,11 @@ async function loadAlerts() {
                     <small>${alert.status || "open"} · ${alert.created_at}</small>
                 </div>
                 <button
+                    class="ack-button ${alert.status === "acknowledged" ? "acknowledged" : ""}"
                     ${alert.status === "acknowledged" ? "disabled" : ""}
                     onclick="acknowledgeAlert(${alert.id})"
                 >
-                    Acknowledge
+                    ${alert.status === "acknowledged" ? "Acknowledged" : "Acknowledge"}
                 </button>
             `;
             managementList.appendChild(managementRow);
@@ -728,14 +925,14 @@ async function loadJobs() {
     latestJobs = jobs;
     const list = document.getElementById("jobList");
     const historyList = document.getElementById("jobHistoryList");
-    list.innerHTML = "";
+    if (list) list.innerHTML = "";
 
     if (historyList) {
         historyList.innerHTML = "";
     }
 
     if (!jobs.length) {
-        list.innerHTML = `<div class="feed-item">No analysis jobs yet</div>`;
+        if (list) list.innerHTML = `<div class="feed-item">No analysis jobs yet</div>`;
         if (historyList) {
             historyList.innerHTML = `<div class="feed-item">No analysis jobs match current filter</div>`;
         }
@@ -747,12 +944,12 @@ async function loadJobs() {
         row.className = "list-row";
         row.innerHTML = `
             <div>
-                <strong>Job #${job.id} · ${job.status}</strong><br>
+                <strong>#${job.id} · ${job.status}</strong><br>
                 <small>${job.total_people || 0} people · ${job.congestion_alert || "Normal"}</small>
             </div>
             <small>${job.finished_at || job.created_at}</small>
         `;
-        list.appendChild(row);
+        if (list) list.appendChild(row);
 
         if (historyList) {
             const historyRow = document.createElement("div");
@@ -760,7 +957,7 @@ async function loadJobs() {
             historyRow.onclick = () => selectAnalysisJob(job.id);
             historyRow.innerHTML = `
                 <div>
-                    <strong>Job #${job.id} · ${job.status}</strong><br>
+                    <strong>#${job.id} · ${job.status}</strong><br>
                     <small>${job.camera_name || "Unknown camera"} · ${job.video_name || "Uploaded video"}</small><br>
                     <small>${job.total_people || 0} people · ${job.most_crowded_zone || "-"}</small>
                 </div>
@@ -923,7 +1120,7 @@ async function exportReport() {
     await loadReports();
 }
 
-function openPrintableReport() {
+async function downloadPdfReport() {
     const params = new URLSearchParams();
     const cameraId = selectedCameraId();
     const jobId = document.getElementById("reportJobId")?.value || selectedJobId;
@@ -932,19 +1129,20 @@ function openPrintableReport() {
     if (jobId) params.set("job_id", jobId);
 
     const query = params.toString() ? `?${params.toString()}` : "";
-    window.open(`/api/reports/print${query}`, "_blank");
-}
+    const response = await apiFetch(`/api/reports/pdf${query}`);
 
-function downloadPdfReport() {
-    const params = new URLSearchParams();
-    const cameraId = selectedCameraId();
-    const jobId = document.getElementById("reportJobId")?.value || selectedJobId;
+    if (!response.ok) {
+        alert("No completed analysis job is available");
+        return;
+    }
 
-    if (cameraId) params.set("camera_source_id", cameraId);
-    if (jobId) params.set("job_id", jobId);
-
-    const query = params.toString() ? `?${params.toString()}` : "";
-    window.open(`/api/reports/pdf${query}`, "_blank");
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "flowai-report.pdf";
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 async function loadReports() {
@@ -992,7 +1190,7 @@ async function loadUsers() {
 
     users.forEach(user => {
         const row = document.createElement("div");
-        row.className = "list-row";
+        row.className = "list-row user-row";
         row.innerHTML = `
             <div>
                 <strong>${user.full_name}</strong><br>
@@ -1000,8 +1198,8 @@ async function loadUsers() {
             </div>
             <select onchange="updateUser(${user.id}, { role: this.value })">
                 <option value="admin" ${user.role === "admin" ? "selected" : ""}>Admin</option>
-                <option value="operator" ${user.role === "operator" ? "selected" : ""}>Operator</option>
                 <option value="analyst" ${user.role === "analyst" ? "selected" : ""}>Analyst</option>
+                <option value="staff" ${user.role === "staff" ? "selected" : ""}>Staff</option>
             </select>
             <button onclick="toggleUserStatus(${user.id}, '${user.status}')">
                 ${user.status === "active" ? "Deactivate" : "Activate"}
@@ -1009,33 +1207,6 @@ async function loadUsers() {
         `;
         list.appendChild(row);
     });
-}
-
-async function createUser() {
-    if (!isAdmin()) return;
-
-    const response = await apiFetch("/api/users", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            fullName: document.getElementById("newUserName").value,
-            email: document.getElementById("newUserEmail").value,
-            password: document.getElementById("newUserPassword").value,
-            role: document.getElementById("newUserRole").value
-        })
-    });
-
-    if (!response.ok) {
-        alert("Cannot create user");
-        return;
-    }
-
-    document.getElementById("newUserName").value = "";
-    document.getElementById("newUserEmail").value = "";
-    document.getElementById("newUserPassword").value = "";
-    await loadUsers();
 }
 
 async function updateUser(userId, patch) {
@@ -1117,6 +1288,43 @@ function closeHeatmap() {
     document.getElementById("heatmapModal").style.display = "none";
 }
 
+function makeGeometry(shape, points = []) {
+    return {
+        shape,
+        points
+    };
+}
+
+function normalizeGeometry(rawCoordinates, fallbackPoints = []) {
+    if (Array.isArray(rawCoordinates)) {
+        return makeGeometry(
+            rawCoordinates.length === 2 ? "line" : "polygon",
+            rawCoordinates
+        );
+    }
+
+    if (rawCoordinates && Array.isArray(rawCoordinates.points)) {
+        return makeGeometry(
+            rawCoordinates.shape === "line" ? "line" : "polygon",
+            rawCoordinates.points
+        );
+    }
+
+    return makeGeometry("polygon", fallbackPoints);
+}
+
+function getZoneGeometry(zone) {
+    return normalizeGeometry(zone.coordinates);
+}
+
+function setZoneGeometry(zone, shape, points) {
+    zone.coordinates = makeGeometry(shape, points);
+}
+
+function getZonePoints(zone) {
+    return getZoneGeometry(zone).points || [];
+}
+
 window.onclick = event => {
     const modal = document.getElementById("heatmapModal");
 
@@ -1125,123 +1333,30 @@ window.onclick = event => {
     }
 };
 
-function generateGrid() {
-    if (!canWrite()) return;
-
-    const gridSize = parseInt(document.getElementById("gridSelector").value);
-    const overlay = document.getElementById("zoneGridOverlay");
-    overlay.innerHTML = "";
-    overlay.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
-    overlay.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
-    zones = [];
-
-    for (let i = 0; i < gridSize * gridSize; i++) {
-        const cell = document.createElement("div");
-        const zoneName = `Zone ${i + 1}`;
-        cell.className = "grid-cell";
-        cell.innerHTML = `<div class="grid-label">${zoneName}</div>`;
-        cell.onclick = () => renameZone(i);
-        overlay.appendChild(cell);
-        zones.push({
-            id: i,
-            name: zoneName,
-            type: "monitoring",
-            grid_position: i,
-            coordinates: gridCellCoordinates(i, gridSize),
-            threshold: 10
-        });
-    }
-
-    renderZoneList();
-    setupPolygonCanvas();
-    renderPolygonOverlay();
-}
-
-function applyReportZonePreset() {
-    if (!canWrite()) return;
-
-    document.getElementById("gridSelector").value = "2";
-
-    const reportZones = [
-        {
-            id: 0,
-            name: "Entrance",
-            type: "entrance",
-            grid_position: 0,
-            threshold: 12
-        },
-        {
-            id: 1,
-            name: "Lobby",
-            type: "lobby",
-            grid_position: 1,
-            threshold: 15
-        },
-        {
-            id: 2,
-            name: "Escalator",
-            type: "bottleneck",
-            grid_position: 2,
-            threshold: 10
-        },
-        {
-            id: 3,
-            name: "Exit",
-            type: "exit",
-            grid_position: 3,
-            threshold: 12
-        }
-    ];
-
-    renderGridFromZones(2, reportZones);
-}
-
 function renderGridFromZones(gridSize, savedZones) {
-    const overlay = document.getElementById("zoneGridOverlay");
-    overlay.innerHTML = "";
-    overlay.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
-    overlay.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
-
-    const byPosition = new Map(
-        savedZones.map(zone => [
-            Number(zone.grid_position),
-            zone
-        ])
-    );
-
-    zones = [];
-
-    for (let i = 0; i < gridSize * gridSize; i++) {
-        const savedZone = byPosition.get(i);
-        const zoneName = savedZone?.name || savedZone?.zone_name || `Zone ${i + 1}`;
+    zones = savedZones.map((savedZone, index) => {
+        const zoneName = savedZone?.name || savedZone?.zone_name || `Zone ${index + 1}`;
         const threshold = Number(savedZone?.threshold || 10);
         const type = savedZone?.type || savedZone?.zone_type || "monitoring";
-        const coordinates = savedZone?.coordinates || gridCellCoordinates(i, gridSize);
-        const cell = document.createElement("div");
+        const fallbackPoints = [];
+        const coordinates = normalizeGeometry(savedZone?.coordinates, fallbackPoints);
 
-        cell.className = "grid-cell";
-        cell.innerHTML = `<div class="grid-label">${zoneName}</div>`;
-        cell.onclick = () => {
-            activeZoneIndex = i;
-            renameZone(i);
-            renderPolygonOverlay();
-        };
-        overlay.appendChild(cell);
-
-        zones.push({
-            id: i,
+        return {
+            id: index,
             name: zoneName,
             type,
-            grid_position: i,
+            grid_position: index,
             coordinates,
             threshold
-        });
-    }
+        };
+    });
 
-    document.getElementById("gridSelector").value = String(gridSize);
+    activeZoneIndex = zones.length ? Math.min(activeZoneIndex, zones.length - 1) : 0;
+
     renderZoneList();
     setupPolygonCanvas();
     renderPolygonOverlay();
+    renderDashboardZoneOverlay();
 }
 
 function setupPolygonCanvas() {
@@ -1255,45 +1370,62 @@ function setupPolygonCanvas() {
         if (!polygonMode || !zones[activeZoneIndex]) return;
 
         const rect = svg.getBoundingClientRect();
+        const mode = document.getElementById("zoneDrawMode")?.value || "polygon";
         const point = {
             x: Number(((event.clientX - rect.left) / rect.width).toFixed(4)),
             y: Number(((event.clientY - rect.top) / rect.height).toFixed(4))
         };
 
-        zones[activeZoneIndex].coordinates = [
-            ...(zones[activeZoneIndex].coordinates || []),
-            point
-        ];
+        const current = getZoneGeometry(zones[activeZoneIndex]);
+        const basePoints = current.shape === mode ? current.points : [];
+        const nextPoints = mode === "line"
+            ? [...basePoints, point].slice(-2)
+            : [...basePoints, point];
+
+        setZoneGeometry(zones[activeZoneIndex], mode, nextPoints);
         renderZoneList();
         renderPolygonOverlay();
+        renderDashboardZoneOverlay();
     });
 }
 
 function togglePolygonMode() {
-    polygonMode = !polygonMode;
+    if (!zones[activeZoneIndex]) {
+        alert("Please add and select a zone first");
+        return;
+    }
+
+    polygonMode = true;
     const wrapper = document.querySelector(".zone-preview-wrapper");
 
     if (wrapper) {
-        wrapper.classList.toggle("polygon-active", polygonMode);
+        wrapper.classList.add("polygon-active");
     }
 
-    addFeed(polygonMode ? "Polygon mode enabled" : "Polygon mode disabled");
+    addFeed(`Drawing enabled for ${zones[activeZoneIndex].name}`);
 }
 
 function clearActivePolygon() {
     if (!zones[activeZoneIndex]) return;
 
-    zones[activeZoneIndex].coordinates = [];
+    const mode = document.getElementById("zoneDrawMode")?.value || getZoneGeometry(zones[activeZoneIndex]).shape;
+    setZoneGeometry(zones[activeZoneIndex], mode, []);
     renderZoneList();
     renderPolygonOverlay();
+    renderDashboardZoneOverlay();
 }
 
 function selectZoneForPolygon(index) {
     activeZoneIndex = index;
-    polygonMode = true;
-    document.querySelector(".zone-preview-wrapper")?.classList.add("polygon-active");
+    polygonMode = false;
+    document.querySelector(".zone-preview-wrapper")?.classList.remove("polygon-active");
+    const modeSelect = document.getElementById("zoneDrawMode");
+    if (modeSelect && zones[index]) {
+        modeSelect.value = getZoneGeometry(zones[index]).shape;
+    }
     renderZoneList();
     renderPolygonOverlay();
+    addFeed(`Selected ${zones[index].name}`);
 }
 
 function renderPolygonOverlay() {
@@ -1301,21 +1433,57 @@ function renderPolygonOverlay() {
 
     if (!svg) return;
 
+    renderZoneSvg(svg, true);
+}
+
+function renderDashboardZoneOverlay() {
+    const svg = document.getElementById("dashboardZoneOverlay");
+
+    if (!svg) return;
+
+    renderZoneSvg(svg, false);
+}
+
+function renderZoneSvg(svg, editable) {
     svg.innerHTML = "";
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
 
     zones.forEach((zone, index) => {
-        const points = zone.coordinates || [];
+        const geometry = getZoneGeometry(zone);
+        const points = geometry.points || [];
 
         if (!points.length) return;
 
-        const pointText = points
-            .map(point => `${point.x * 100},${point.y * 100}`)
-            .join(" ");
+        if (geometry.shape === "line" && points.length >= 2) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", points[0].x * 100);
+            line.setAttribute("y1", points[0].y * 100);
+            line.setAttribute("x2", points[1].x * 100);
+            line.setAttribute("y2", points[1].y * 100);
+            line.setAttribute("class", index === activeZoneIndex ? "active-zone-line" : "zone-line");
+            svg.appendChild(line);
+        } else if (geometry.shape !== "line" && points.length >= 3) {
+            const pointText = points
+                .map(point => `${point.x * 100},${point.y * 100}`)
+                .join(" ");
 
-        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        polygon.setAttribute("points", pointText);
-        polygon.setAttribute("class", index === activeZoneIndex ? "active-polygon" : "zone-polygon");
-        svg.appendChild(polygon);
+            const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            polygon.setAttribute("points", pointText);
+            polygon.setAttribute("class", index === activeZoneIndex ? "active-polygon" : "zone-polygon");
+            svg.appendChild(polygon);
+        }
+
+        if (points.length) {
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            label.setAttribute("x", points[0].x * 100 + 1);
+            label.setAttribute("y", points[0].y * 100 + 4);
+            label.setAttribute("class", "zone-svg-label");
+            label.textContent = zone.name;
+            svg.appendChild(label);
+        }
+
+        if (!editable) return;
 
         points.forEach(point => {
             const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -1349,8 +1517,9 @@ async function loadZonesForSelectedCamera() {
 
     if (!cameraId) {
         zones = [];
-        document.getElementById("zoneGridOverlay").innerHTML = "";
         document.getElementById("zoneList").innerHTML = "";
+        document.getElementById("zonePreview")?.removeAttribute("src");
+        renderDashboardZoneOverlay();
         return;
     }
 
@@ -1364,10 +1533,10 @@ async function loadZonesForSelectedCamera() {
 
     if (!Array.isArray(savedZones) || !savedZones.length) {
         zones = [];
-        document.getElementById("zoneGridOverlay").innerHTML = "";
         document.getElementById("zoneList").innerHTML =
             `<div class="feed-item">No zones configured for this camera</div>`;
         renderThresholdSummary();
+        renderDashboardZoneOverlay();
         return;
     }
 
@@ -1385,33 +1554,86 @@ function renameZone(index) {
     zones[index].name = newName;
     zones[index].type = type;
     zones[index].threshold = threshold;
-    generateGridVisuals();
+    renderZoneList();
+    renderPolygonOverlay();
+    renderDashboardZoneOverlay();
 }
 
 function generateGridVisuals() {
-    document.querySelectorAll(".grid-cell").forEach((cell, index) => {
-        cell.innerHTML = `<div class="grid-label">${zones[index].name}</div>`;
+    renderZoneList();
+}
+
+function addZone() {
+    if (!canWrite()) return;
+
+    const shape = document.getElementById("zoneDrawMode")?.value || "polygon";
+    const name = prompt("Zone name:", `Zone ${zones.length + 1}`);
+
+    if (!name) return;
+
+    const type = prompt("Zone type:", shape === "line" ? "counting-line" : "monitoring") || (shape === "line" ? "counting-line" : "monitoring");
+    const threshold = Number(prompt("Density threshold:", "10")) || 10;
+    const index = zones.length;
+
+    zones.push({
+        id: index,
+        name,
+        type,
+        grid_position: index,
+        coordinates: makeGeometry(shape, []),
+        threshold
     });
 
+    activeZoneIndex = index;
+    polygonMode = false;
+    document.querySelector(".zone-preview-wrapper")?.classList.remove("polygon-active");
     renderZoneList();
+    renderPolygonOverlay();
+    renderDashboardZoneOverlay();
 }
 
 function renderZoneList() {
     const container = document.getElementById("zoneList");
     container.innerHTML = "";
 
-    zones.forEach(zone => {
+    zones.forEach((zone, index) => {
+        const geometry = getZoneGeometry(zone);
+        const points = geometry.points || [];
         const div = document.createElement("div");
         div.className = "zone-item";
         div.innerHTML = `
             <strong>${zone.name}</strong>
-            <span>${zone.type || "monitoring"} · Threshold: ${zone.threshold} · Points: ${(zone.coordinates || []).length}</span>
-            <button onclick="selectZoneForPolygon(${zone.id ?? zone.grid_position})">Draw</button>
+            <span>${zone.type || "monitoring"} · ${geometry.shape} · Threshold: ${zone.threshold} · Points: ${points.length}</span>
+            <div class="row-actions">
+                <button onclick="selectZoneForPolygon(${index})">Draw</button>
+                <button class="danger-button" onclick="deleteZone(${index})">Delete</button>
+            </div>
         `;
         container.appendChild(div);
     });
 
     renderThresholdSummary();
+}
+
+function deleteZone(index) {
+    if (!canWrite()) return;
+
+    if (!zones[index]) return;
+
+    if (!confirm(`Delete zone "${zones[index].name}"?`)) {
+        return;
+    }
+
+    zones.splice(index, 1);
+    zones = zones.map((zone, nextIndex) => ({
+        ...zone,
+        id: nextIndex,
+        grid_position: nextIndex
+    }));
+    activeZoneIndex = zones.length ? Math.min(activeZoneIndex, zones.length - 1) : 0;
+    renderZoneList();
+    renderPolygonOverlay();
+    renderDashboardZoneOverlay();
 }
 
 function renderThresholdSummary() {
@@ -1453,8 +1675,11 @@ async function saveZones() {
             },
             body: JSON.stringify({
                 camera_source_id: document.getElementById("cameraSelect").value || null,
-                grid_size: parseInt(document.getElementById("gridSelector").value),
-                zones
+                grid_size: 1,
+                zones: zones.map((zone, index) => ({
+                    ...zone,
+                    grid_position: index
+                }))
             })
         });
 
@@ -1465,12 +1690,22 @@ async function saveZones() {
         addFeed("Zones saved");
 
         const reprocessResponse = await apiFetch("/api/reprocess", {
-            method: "POST"
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                cameraSourceId: selectedCameraId()
+            })
         });
 
         if (reprocessResponse.ok) {
             addFeed("Dashboard updated");
-            await Promise.all([loadStats(), loadAlerts(), loadJobs(), loadFlow()]);
+            latestStatsSignature = "";
+            await Promise.all([loadStats(), loadAlerts(), loadJobs(), loadFlow(), loadMulticameraOverview()]);
+        } else {
+            const data = await reprocessResponse.json();
+            addFeed(data.error || "Zones saved; upload a video to process this camera");
         }
 
         alert("Zones updated successfully");

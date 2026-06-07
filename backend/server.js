@@ -114,15 +114,11 @@ async function getLatestZones(cameraSourceId) {
 }
 
 function writeRuntimeZonesFile(cameraSourceId, zones) {
-    if (!zones.length) {
-        return;
-    }
-
     fs.writeFileSync(
         path.join(OUTPUT_DIR, "zones.json"),
         JSON.stringify({
             camera_source_id: cameraSourceId || null,
-            grid_size: zones[0].grid_size,
+            grid_size: zones[0]?.grid_size || 1,
             zones: zones.map(zone => ({
                 name: zone.zone_name,
                 type: zone.zone_type || "monitoring",
@@ -323,10 +319,6 @@ async function persistTrajectoryPoints(jobId, csvPath) {
 async function processVideo({ videoId, videoPath, cameraSourceId }) {
     const zones = await getLatestZones(cameraSourceId);
 
-    if (!zones.length) {
-        throw new Error("Please configure zones before running analysis");
-    }
-
     writeRuntimeZonesFile(cameraSourceId, zones);
 
     const jobResult = await pool.query(
@@ -415,7 +407,7 @@ async function processVideo({ videoId, videoPath, cameraSourceId }) {
     }
 }
 
-app.post("/upload", authenticate, authorize("admin", "operator"), upload.single("video"), async (req, res) => {
+app.post("/upload", authenticate, authorize("admin"), upload.single("video"), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({
@@ -463,15 +455,45 @@ app.post("/upload", authenticate, authorize("admin", "operator"), upload.single(
     }
 });
 
-app.post("/api/reprocess", authenticate, authorize("admin", "operator"), async (req, res) => {
+app.post("/api/reprocess", authenticate, authorize("admin"), async (req, res) => {
     try {
-        if (!fs.existsSync(CURRENT_CONTEXT_PATH)) {
+        let context = null;
+        const cameraSourceId = req.body?.cameraSourceId || req.body?.camera_source_id || null;
+
+        if (cameraSourceId) {
+            const videoResult = await pool.query(
+                `
+                SELECT id, path
+                FROM videos
+                WHERE camera_source_id = $1
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+                `,
+                [cameraSourceId]
+            );
+            const video = videoResult.rows[0];
+
+            if (!video) {
+                return res.status(400).json({
+                    error: "No uploaded video is available for this camera"
+                });
+            }
+
+            context = {
+                videoId: video.id,
+                videoPath: video.path,
+                cameraSourceId
+            };
+        } else if (fs.existsSync(CURRENT_CONTEXT_PATH)) {
+            context = JSON.parse(fs.readFileSync(CURRENT_CONTEXT_PATH, "utf8"));
+        }
+
+        if (!context) {
             return res.status(400).json({
                 error: "No uploaded video is available"
             });
         }
 
-        const context = JSON.parse(fs.readFileSync(CURRENT_CONTEXT_PATH, "utf8"));
         const result = await processVideo(context);
 
         res.json({

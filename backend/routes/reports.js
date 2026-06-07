@@ -1,6 +1,6 @@
 const express = require("express");
 const { pool } = require("../config/db");
-const { authenticate } = require("../services/authService");
+const { authenticate, authorize } = require("../services/authService");
 
 const router = express.Router();
 
@@ -96,7 +96,7 @@ function buildSimplePdf(lines) {
     return Buffer.from(pdf, "utf8");
 }
 
-router.post("/reports/export", authenticate, async (req, res) => {
+router.post("/reports/export", authenticate, authorize("admin", "analyst"), async (req, res) => {
     const { jobId, cameraSourceId, format } = req.body || {};
     const job = await getReportJob({ jobId, cameraSourceId });
 
@@ -172,7 +172,7 @@ router.post("/reports/export", authenticate, async (req, res) => {
     res.send(lines.join("\n"));
 });
 
-router.get("/reports/print", authenticate, async (req, res) => {
+router.get("/reports/print", authenticate, authorize("admin", "analyst"), async (req, res) => {
     const job = await getReportJob({
         jobId: req.query.job_id,
         cameraSourceId: req.query.camera_source_id
@@ -245,7 +245,7 @@ router.get("/reports/print", authenticate, async (req, res) => {
     `);
 });
 
-router.get("/reports/pdf", authenticate, async (req, res) => {
+router.get("/reports/pdf", authenticate, authorize("admin", "analyst"), async (req, res) => {
     const job = await getReportJob({
         jobId: req.query.job_id,
         cameraSourceId: req.query.camera_source_id
@@ -284,7 +284,7 @@ router.get("/reports/pdf", authenticate, async (req, res) => {
     res.send(pdf);
 });
 
-router.get("/reports", authenticate, async (req, res) => {
+router.get("/reports", authenticate, authorize("admin", "analyst"), async (req, res) => {
     const result = await pool.query(
         `
         SELECT r.id, r.analysis_job_id, r.camera_source_id, r.format,

@@ -6,6 +6,7 @@ import cv2
 import csv
 import sys
 import os
+import numpy as np
 
 # =========================
 # INPUT VIDEO
@@ -271,26 +272,29 @@ for result in results:
     # DRAW ZONES
     # =========================
 
-    for zone_name, (
+    for zone_name, geometry in zones.ZONES.items():
 
-        zx1,
-        zy1,
-        zx2,
-        zy2
+        points = geometry["points"]
 
-    ) in zones.ZONES.items():
-
-        cv2.rectangle(
-
-            frame,
-
-            (zx1, zy1),
-            (zx2, zy2),
-
-            (255, 0, 0),
-
-            2
-        )
+        if geometry["shape"] == "line":
+            cv2.line(
+                frame,
+                points[0],
+                points[1],
+                (255, 0, 0),
+                3
+            )
+            label_point = points[0]
+        else:
+            polygon_points = np.array(points, dtype=np.int32)
+            cv2.polylines(
+                frame,
+                [polygon_points],
+                True,
+                (255, 0, 0),
+                2
+            )
+            label_point = tuple(polygon_points[0])
 
         cv2.putText(
 
@@ -299,8 +303,8 @@ for result in results:
             zone_name,
 
             (
-                zx1 + 10,
-                zy1 + 30
+                int(label_point[0]) + 10,
+                int(label_point[1]) + 30
             ),
 
             cv2.FONT_HERSHEY_SIMPLEX,

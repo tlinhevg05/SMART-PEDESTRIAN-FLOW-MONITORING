@@ -4,17 +4,17 @@ Smart Pedestrian Flow Monitoring and Analytics System for the IT3180E capstone p
 
 ## Implemented Scope
 
-- Role-based login for `admin`, `operator`, and `analyst`.
+- Role-based login for `admin`, `analyst`, and `staff`.
 - Administrator user management with role/status updates.
 - Camera source registration and video upload.
 - Camera metadata/status management.
-- Zone grid configuration with per-zone type, normalized coordinates, and density threshold.
+- Manual polygon/line zone configuration with per-zone type, normalized coordinates, and density threshold.
 - YOLOv8 + ByteTrack pedestrian detection/tracking scripts.
 - Trajectory CSV output persisted into PostgreSQL track/point tables.
 - Dashboard KPI cards, video-time realtime stats, zone chart, timeline chart, transition flow, heatmap, alerts, job history/detail, alert acknowledgement, and CSV report export.
 - Historical job selection for loading an older job's dashboard media and analytics.
 - Multi-camera overview for comparing camera sources and opening a camera's latest job.
-- Polygon zone editing with normalized coordinate storage.
+- Polygon and line zone editing with normalized coordinate storage.
 - Printable HTML report and backend-generated PDF report.
 - API smoke test script covering login, zones, stats, job detail, multicamera, and reports.
 - Dwell-time and density-score analytics per zone.
@@ -53,11 +53,11 @@ backend/config/schema.sql
 
 ```text
 admin@flowai.local / admin123
-operator@flowai.local / operator123
 analyst@flowai.local / analyst123
+staff@flowai.local / staff123
 ```
 
-Admin/operator can upload videos, configure zones, and create camera sources. Analyst can view dashboards, alerts, jobs, and export reports.
+Admin can upload videos, configure zones, create camera sources, and manage users. Analyst can view dashboard, analytics, multicamera, history, and reports. Staff can view dashboard, alerts, and multicamera.
 
 ## Run
 
@@ -166,21 +166,20 @@ Processing speed depends on hardware, model size, video resolution, and video le
 
 Use this flow for the report/demo when you want results produced from an actual video:
 
-1. Log in as admin or operator.
+1. Log in as admin.
 2. Open `Sources`.
 3. Create one camera source for each physical/logical camera, for example `Mall CCTV A`, `Mall CCTV B`.
 4. Select the camera in the top camera dropdown.
-5. Open `System`.
-6. Generate the zone grid, rename zones, set thresholds, and save zones. Use `Report Zone Preset` for the 2 x 2 capstone layout: `Entrance`, `Lobby`, `Escalator`, `Exit`. Zones are stored per camera.
-7. Return to the top upload control.
-8. Keep the intended camera selected and upload an `.mp4` video.
-9. Wait for processing to finish. The backend runs:
+5. Upload an `.mp4` video for that selected camera.
+6. Wait for the first processing pass to finish. The backend runs:
 
 ```text
 extract_preview.py -> tracking.py -> analytics.py -> heatmap.py
 ```
 
-10. Open `Dashboard` and `Analytics` to view camera-specific stats, heatmap, alerts, transition flow, and report export.
+7. Open `System`, draw polygon zones and/or line zones on the video preview, set thresholds, and save zones.
+8. Saving zones automatically reprocesses the latest uploaded video for the selected camera.
+9. Open `Dashboard` and `Analytics` to view camera-specific stats, polygon occupancy, line crossings, heatmap, alerts, transition flow, and report export.
 
 The current tested real-video camera is:
 
@@ -215,9 +214,9 @@ The dashboard reads the latest completed job for the selected camera and loads t
 The current prototype maps to the report use cases as follows:
 
 - `UC-01 Manage Accounts`: Users tab for creating accounts, changing roles, and activating/deactivating users.
-- `UC-02 Login`: Role-based login with admin/operator/analyst accounts.
+- `UC-02 Login`: Role-based login with admin/analyst/staff accounts.
 - `UC-03 Manage Video/Camera Sources`: Sources tab for camera metadata and video upload.
-- `UC-04 Configure Zones`: System tab with grid/preset zones, zone type, normalized coordinates, and thresholds per camera.
+- `UC-04 Configure Zones`: System tab with manual polygon/line zones, zone type, normalized coordinates, and thresholds per camera.
 - `UC-05 Run Analysis Job`: Upload/reprocess pipeline with stored job history.
 - `UC-06 View Dashboard`: KPI cards, realtime video-window stats, charts, and status cards.
 - `UC-07 View Heatmap`: Per-job heatmap preview and full modal.
@@ -240,10 +239,10 @@ The smoke test covers invalid login, valid login, camera creation, zone persiste
 1. Log in as `admin@flowai.local / admin123`.
 2. Open `Sources` to register or update a camera source and status.
 3. Select `Mall CCTV A` in the top camera selector.
-4. Open `System`, apply `Report Zone Preset`, edit zone names/types/thresholds if needed, then save.
-5. Upload or reprocess a pedestrian video.
+4. Upload a pedestrian `.mp4` video for the selected camera.
+5. Open `System`, draw polygon/line zones, edit zone names/types/thresholds if needed, then save to reprocess.
 6. Open `Dashboard` to view the processed video and heatmap for the selected camera/job.
 7. Open `Multicam` to compare camera sources and jump to a camera's latest job.
-8. Open `Jobs`, click a historical job, then `View On Dashboard` to load that exact job's media.
+8. Open `History`, click a historical job, then `View On Dashboard` to load that exact job's media.
 9. Open `Alerts` to acknowledge threshold breaches.
-10. Open `Reports` to export CSV, open the printable report, or download PDF.
+10. Open `Reports` to export CSV or download PDF.

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(120) NOT NULL,
     email VARCHAR(160) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role VARCHAR(30) NOT NULL CHECK (role IN ('admin', 'operator', 'analyst')),
+    role VARCHAR(30) NOT NULL CHECK (role IN ('admin', 'analyst', 'staff')),
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -116,6 +116,17 @@ CREATE TABLE IF NOT EXISTS alerts (
 
 ALTER TABLE analysis_jobs
 ADD COLUMN IF NOT EXISTS timeline JSONB DEFAULT '[]'::jsonb;
+
+ALTER TABLE users
+DROP CONSTRAINT IF EXISTS users_role_check;
+
+UPDATE users
+SET role = 'staff'
+WHERE role = 'operator';
+
+ALTER TABLE users
+ADD CONSTRAINT users_role_check
+CHECK (role IN ('admin', 'analyst', 'staff'));
 
 ALTER TABLE analysis_jobs
 ADD COLUMN IF NOT EXISTS dwell_times JSONB DEFAULT '{}'::jsonb;
