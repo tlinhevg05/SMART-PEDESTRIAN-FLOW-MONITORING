@@ -417,6 +417,14 @@ app.post("/upload", authenticate, authorize("admin"), upload.single("video"), as
 
         const cameraSourceId = req.body.cameraSourceId || req.body.camera_source_id || null;
         const videoPath = req.file.path;
+
+        if (cameraSourceId) {
+            await pool.query(
+                `DELETE FROM zones WHERE camera_source_id = $1`,
+                [cameraSourceId]
+            );
+        }
+
         const videoResult = await pool.query(
             `
             INSERT INTO videos (camera_source_id, filename, original_name, path, status)

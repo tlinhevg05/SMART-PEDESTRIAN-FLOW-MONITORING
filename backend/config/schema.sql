@@ -12,11 +12,13 @@ CREATE TABLE IF NOT EXISTS camera_sources (
     id SERIAL PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     location VARCHAR(160),
-    stream_url TEXT,
     description TEXT,
     status VARCHAR(30) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE camera_sources
+DROP COLUMN IF EXISTS stream_url;
 
 CREATE TABLE IF NOT EXISTS videos (
     id SERIAL PRIMARY KEY,

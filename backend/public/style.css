@@ -248,19 +248,28 @@ select {
     font-size: 13px;
 }
 
-.user-row {
+.list-row.user-row {
 
     display: grid;
 
-    grid-template-columns: minmax(220px, 1fr) 150px 140px;
+    grid-template-columns: minmax(280px, 1fr) 180px 160px;
+
+    gap: 16px;
 
     align-items: center;
+
+    justify-content: normal;
 }
 
 .user-row select,
 .user-row button {
 
     width: 100%;
+}
+
+.user-row > div:first-child {
+
+    min-width: 0;
 }
 
 .multicam-grid {
@@ -1574,6 +1583,48 @@ canvas {
     padding: 12px;
 
     border-radius: 8px;
+}
+
+.zone-meta-row {
+
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr) 130px;
+
+    gap: 10px;
+
+    align-items: end;
+
+    margin-top: 6px;
+}
+
+.zone-meta-row span {
+
+    color: var(--text-secondary);
+
+    line-height: 1.4;
+}
+
+.zone-meta-row label {
+
+    display: grid;
+
+    gap: 4px;
+
+    margin: 0;
+}
+
+.zone-meta-row select {
+
+    width: 100%;
+
+    padding: 8px 10px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    background: #ffffff;
 }
 
 .system-layout .panel {

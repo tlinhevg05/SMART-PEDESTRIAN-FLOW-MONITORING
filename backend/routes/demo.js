@@ -87,14 +87,13 @@ router.post("/demo/seed", authenticate, authorize("admin"), async (req, res) => 
         const cameraResult = await pool.query(
             `
             INSERT INTO camera_sources
-            (name, location, stream_url, description, status)
-            VALUES ($1, $2, $3, $4, 'active')
+            (name, location, description, status)
+            VALUES ($1, $2, $3, 'active')
             RETURNING id
             `,
             [
                 "Demo Camera - Main Lobby",
                 "Convention hall entrance",
-                "",
                 "Synthetic capstone demo source"
             ]
         );

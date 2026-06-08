@@ -9,6 +9,7 @@ let latestJobs = [];
 let selectedJobId = "";
 let polygonMode = false;
 let activeZoneIndex = 0;
+let uploadAfterFilePick = false;
 
 function selectedCameraId() {
     return document.getElementById("cameraSelect")?.value || "";
@@ -221,9 +222,21 @@ async function initializeDashboard() {
     startRealtimeStats();
 
     const cameraSelect = document.getElementById("cameraSelect");
+    const videoInput = document.getElementById("videoInput");
 
     if (cameraSelect) {
         cameraSelect.onchange = handleCameraChange;
+    }
+
+    if (videoInput) {
+        videoInput.onchange = () => {
+            if (!uploadAfterFilePick || !videoInput.files.length) return;
+            uploadAfterFilePick = false;
+            uploadVideo();
+        };
+        videoInput.oncancel = () => {
+            uploadAfterFilePick = false;
+        };
     }
 }
 
@@ -653,7 +666,18 @@ async function uploadVideo() {
 
         addFeed("Analytics completed");
         latestStatsSignature = "";
-        await Promise.all([loadStats(), loadAlerts(), loadJobs(), loadFlow()]);
+        zones = [];
+        renderZoneList();
+        renderPolygonOverlay();
+        renderDashboardZoneOverlay();
+        await Promise.all([
+            loadStats(),
+            loadAlerts(),
+            loadJobs(),
+            loadFlow(),
+            loadZonesForSelectedCamera(),
+            loadMulticameraOverview()
+        ]);
         alert("Processing completed successfully");
     } catch (err) {
         console.error(err);
@@ -675,7 +699,7 @@ async function loadCameras() {
     const previousValue = cameraSelectInitialized ? select.value : "";
     const list = document.getElementById("cameraList");
 
-    select.innerHTML = `<option value="">All cameras</option>`;
+    select.innerHTML = `<option value="">Select camera</option>`;
     if (list) list.innerHTML = "";
 
     cameras.forEach(camera => {
@@ -745,32 +769,19 @@ async function createCamera() {
 async function editCamera(cameraId) {
     if (!canWrite()) return;
 
-    const current = [...document.getElementById("cameraSelect").options]
-        .find(option => option.value === String(cameraId));
-    const currentName = current ? current.text.split(" (")[0] : "";
-    const name = prompt("Camera name:", currentName);
+    const select = document.getElementById("cameraSelect");
+    const input = document.getElementById("videoInput");
 
-    if (!name) return;
-
-    const location = prompt("Location:", "");
-
-    const response = await apiFetch(`/api/cameras/${cameraId}`, {
-        method: "PATCH",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            name,
-            location
-        })
-    });
-
-    if (!response.ok) {
-        alert("Cannot update camera");
-        return;
+    if (select) {
+        select.value = String(cameraId);
+        await handleCameraChange();
     }
 
-    await loadCameras();
+    if (input) {
+        input.value = "";
+        uploadAfterFilePick = true;
+        input.click();
+    }
 }
 
 async function toggleCameraStatus(cameraId, currentStatus) {
@@ -1599,11 +1610,26 @@ function renderZoneList() {
     zones.forEach((zone, index) => {
         const geometry = getZoneGeometry(zone);
         const points = geometry.points || [];
+        const thresholdOptions = [5, 10, 12, 15, 20, 25, 30, 40, 50];
+        const threshold = Number(zone.threshold || 10);
+        const options = thresholdOptions.includes(threshold)
+            ? thresholdOptions
+            : [threshold, ...thresholdOptions].sort((a, b) => a - b);
         const div = document.createElement("div");
         div.className = "zone-item";
         div.innerHTML = `
             <strong>${zone.name}</strong>
-            <span>${zone.type || "monitoring"} · ${geometry.shape} · Threshold: ${zone.threshold} · Points: ${points.length}</span>
+            <div class="zone-meta-row">
+                <span>${zone.type || "monitoring"} · ${geometry.shape} · Points: ${points.length}</span>
+                <label>
+                    Threshold
+                    <select onchange="updateZoneThreshold(${index}, this.value)">
+                        ${options.map(value => `
+                            <option value="${value}" ${value === threshold ? "selected" : ""}>${value}</option>
+                        `).join("")}
+                    </select>
+                </label>
+            </div>
             <div class="row-actions">
                 <button onclick="selectZoneForPolygon(${index})">Draw</button>
                 <button class="danger-button" onclick="deleteZone(${index})">Delete</button>
@@ -1612,6 +1638,13 @@ function renderZoneList() {
         container.appendChild(div);
     });
 
+    renderThresholdSummary();
+}
+
+function updateZoneThreshold(index, value) {
+    if (!canWrite() || !zones[index]) return;
+
+    zones[index].threshold = Number(value) || 10;
     renderThresholdSummary();
 }
 

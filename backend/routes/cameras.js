@@ -7,7 +7,7 @@ const router = express.Router();
 router.get("/cameras", authenticate, async (req, res) => {
     const result = await pool.query(
         `
-        SELECT id, name, location, stream_url, description, status, created_at
+        SELECT id, name, location, description, status, created_at
         FROM camera_sources
         ORDER BY id DESC
         `
@@ -18,7 +18,7 @@ router.get("/cameras", authenticate, async (req, res) => {
 
 router.post("/cameras", authenticate, authorize("admin"), async (req, res) => {
     try {
-        const { name, location, streamUrl, description, status } = req.body;
+        const { name, location, description, status } = req.body;
 
         if (!name) {
             return res.status(400).json({
@@ -28,11 +28,11 @@ router.post("/cameras", authenticate, authorize("admin"), async (req, res) => {
 
         const result = await pool.query(
             `
-            INSERT INTO camera_sources (name, location, stream_url, description, status)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, name, location, stream_url, description, status, created_at
+            INSERT INTO camera_sources (name, location, description, status)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, name, location, description, status, created_at
             `,
-            [name, location || "", streamUrl || "", description || "", status || "active"]
+            [name, location || "", description || "", status || "active"]
         );
 
         res.status(201).json(result.rows[0]);
@@ -47,23 +47,21 @@ router.post("/cameras", authenticate, authorize("admin"), async (req, res) => {
 router.patch("/cameras/:id", authenticate, authorize("admin"), async (req, res) => {
     try {
         const cameraId = Number(req.params.id);
-        const { name, location, streamUrl, description, status } = req.body;
+        const { name, location, description, status } = req.body;
 
         const result = await pool.query(
             `
             UPDATE camera_sources
             SET name = COALESCE($1, name),
                 location = COALESCE($2, location),
-                stream_url = COALESCE($3, stream_url),
-                description = COALESCE($4, description),
-                status = COALESCE($5, status)
-            WHERE id = $6
-            RETURNING id, name, location, stream_url, description, status, created_at
+                description = COALESCE($3, description),
+                status = COALESCE($4, status)
+            WHERE id = $5
+            RETURNING id, name, location, description, status, created_at
             `,
             [
                 name || null,
                 location ?? null,
-                streamUrl ?? null,
                 description ?? null,
                 status || null,
                 cameraId
